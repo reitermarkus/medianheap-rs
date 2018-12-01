@@ -155,7 +155,7 @@ impl<T: Ord> MedianHeap<T> {
 }
 
 impl<T> MedianHeap<T> where
-  T: Ord + FromPrimitive + Add<Output = T> + Div<Output = T> + Copy
+  T: Ord + FromPrimitive + Add<Output = T> + Div<Output = T> + Clone
 {
   /// This either returns
   ///   - `Some(T)` containing the median value if there are an odd number of elements
@@ -184,11 +184,11 @@ impl<T> MedianHeap<T> where
   /// ```
   pub fn median(&self) -> Option<T> {
     match self.left.len().cmp(&self.right.len()) {
-      Less    => self.right.peek().map(|item| item.0),
+      Less    => self.right.peek().cloned().map(|item| item.0),
       Greater => self.left.peek().cloned(),
       Equal   => {
         self.left.peek().cloned().and_then(|left| {
-          self.right.peek().and_then(|right| {
+          self.right.peek().cloned().and_then(|right| {
             T::from_u8(2).map(|div| (left + right.0) / div)
           })
         })
@@ -232,8 +232,8 @@ impl<T> MedianHeap<T> where
     }
 
     let ordering = match self.median() {
-      Some(median) if item < median => Less,
-      Some(median) if item > median => Greater,
+      Some(ref median) if &item < median => Less,
+      Some(ref median) if &item > median => Greater,
       _ => Equal,
     };
 
@@ -269,7 +269,7 @@ impl<T> MedianHeap<T> where
             left.push(self.left.pop().unwrap());
           }
 
-          while self.right.peek() == Some(&Reverse(item)) {
+          while self.right.peek().map(|ref i| &i.0) == Some(&item) {
             right.push(self.right.pop().unwrap());
           }
 
