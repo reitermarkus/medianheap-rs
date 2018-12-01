@@ -1,15 +1,14 @@
+use std::mem;
 use std::collections::BinaryHeap;
-use std::cmp::Ordering::*;
+use std::cmp::{Ordering::*, Reverse};
 use std::fmt::{Debug, Formatter, Result};
 use std::ops::{Add, Div};
 
-use crate::max::Max;
-use crate::min::Min;
-
+#[derive(Default)]
 pub struct MedianHeap<T: Ord> {
   max_size: Option<usize>,
-  left: BinaryHeap<Max<T>>,
-  right: BinaryHeap<Min<T>>,
+  left: BinaryHeap<T>,
+  right: BinaryHeap<Reverse<T>>,
 }
 
 impl<T: Ord + Debug> Debug for MedianHeap<T> {
@@ -42,11 +41,11 @@ impl<T: Ord + From<f32> + Add<Output = T> + Div<T, Output = T> + Copy> MedianHea
   pub fn median(&self) -> Option<T> {
     match self.left.len().cmp(&self.right.len()) {
       Less    => self.right.peek().map(|item| item.0),
-      Greater => self.left.peek().map(|item| item.0),
+      Greater => self.left.peek().cloned(),
       Equal   => {
-        self.left.peek().and_then(|left| {
+        self.left.peek().cloned().and_then(|left| {
           self.right.peek().map(|right| {
-            (left.0 + right.0) / T::from(2f32)
+            (left + right.0) / T::from(2f32)
           })
         })
       },
@@ -61,40 +60,40 @@ impl<T: Ord + From<f32> + Add<Output = T> + Div<T, Output = T> + Copy> MedianHea
     }
 
     let ordering = match self.median() {
-      Some(median) if &item < &median => Less,
-      Some(median) if &item > &median => Greater,
+      Some(median) if item < median => Less,
+      Some(median) if item > median => Greater,
       _ => Equal,
     };
 
     match ordering {
       Less => {
         if self.is_full() {
-          self.drop_right();
+          self.pop_max();
         }
 
-        self.left.push(Max(item));
+        self.left.push(item);
       },
       Greater => {
         if self.is_full() {
-          self.drop_left();
+          self.pop_min();
         }
 
-        self.right.push(Min(item));
+        self.right.push(Reverse(item));
       },
-      Equal if self.left.len() > self.right.len() => self.right.push(Min(item)),
+      Equal if self.left.len() > self.right.len() => self.right.push(Reverse(item)),
       Equal => {
         if self.is_full() {
-          self.drop_left();
+          self.pop_min();
         }
 
-        self.left.push(Max(item));
+        self.left.push(item);
       },
     };
 
     if self.right.len() > self.left.len() {
-      self.left.push(Max(self.right.pop().unwrap().0));
+      self.left.push(self.right.pop().unwrap().0);
     } else if self.left.len() > self.right.len() + 1 {
-      self.right.push(Min(self.left.pop().unwrap().0));
+      self.right.push(Reverse(self.left.pop().unwrap()));
     }
   }
 
@@ -114,31 +113,25 @@ impl<T: Ord + From<f32> + Add<Output = T> + Div<T, Output = T> + Copy> MedianHea
     }
   }
 
-  fn drop_left(&mut self) {
+  fn pop_min(&mut self) {
     if self.left.is_empty() {
       return
     }
 
-    let mut new_heap = BinaryHeap::with_capacity(0);
-
-    std::mem::swap(&mut new_heap, &mut self.left);
-
-    let mut vec = new_heap.into_sorted_vec();
+    let heap = mem::replace(&mut self.left, BinaryHeap::with_capacity(0));
+    let mut vec = heap.into_sorted_vec();
     vec.remove(0);
 
     self.left = BinaryHeap::from(vec);
   }
 
-  fn drop_right(&mut self) {
+  fn pop_max(&mut self) {
     if self.right.is_empty() {
       return
     }
 
-    let mut new_heap = BinaryHeap::with_capacity(0);
-
-    std::mem::swap(&mut new_heap, &mut self.right);
-
-    let mut vec = new_heap.into_sorted_vec();
+    let heap = mem::replace(&mut self.right, BinaryHeap::with_capacity(0));
+    let mut vec = heap.into_sorted_vec();
     vec.remove(0);
 
     self.right = BinaryHeap::from(vec);
@@ -148,29 +141,8 @@ impl<T: Ord + From<f32> + Add<Output = T> + Div<T, Output = T> + Copy> MedianHea
 #[cfg(test)]
 mod tests {
   use super::*;
-  use std::collections::BinaryHeap;
 
   use ordered_float::NotNan;
-
-  #[test]
-  fn max_heap() {
-    let mut heap = BinaryHeap::new();
-
-    heap.push(Max(1));
-    heap.push(Max(2));
-
-    assert_eq!(heap.pop(), Some(Max(2)));
-  }
-
-  #[test]
-  fn min_heap() {
-    let mut heap = BinaryHeap::new();
-
-    heap.push(Min(1));
-    heap.push(Min(2));
-
-    assert_eq!(heap.pop(), Some(Min(1)));
-  }
 
   #[test]
   fn binary_heap_into_vec() {
@@ -181,8 +153,8 @@ mod tests {
     heap.insert(3.0);
     heap.insert(4.0);
 
-    assert_eq!(heap.left.into_vec(), vec![Max(2.0.into()), Max(1.0.into())]);
-    assert_eq!(heap.right.into_vec(), vec![Min(3.0.into()), Min(4.0.into())]);
+    assert_eq!(heap.left.into_vec(), vec![2.0.into(), 1.0.into()]);
+    assert_eq!(heap.right.into_vec(), vec![Reverse(3.0.into()), Reverse(4.0.into())]);
   }
 
   #[test]
