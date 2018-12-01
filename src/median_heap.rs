@@ -231,13 +231,7 @@ impl<T> MedianHeap<T> where
       return
     }
 
-    let ordering = match self.median() {
-      Some(ref median) if &item < median => Less,
-      Some(ref median) if &item > median => Greater,
-      _ => Equal,
-    };
-
-    match ordering {
+    match self.median().map(|median| item.cmp(&median)).unwrap_or(Equal) {
       Less => {
         if self.is_full() {
           self.pop_max();
