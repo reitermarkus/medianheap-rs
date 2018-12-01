@@ -4,23 +4,19 @@ use std::fmt::{Debug, Formatter, Result};
 #[derive(PartialEq, Eq)]
 pub struct Min<T: Ord>(pub T);
 
-impl<T> PartialOrd for Min<T>
-where T: Ord
-{
+impl<T: Ord> PartialOrd for Min<T> {
   fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
     Some(self.cmp(other))
   }
 }
 
-impl<T> Ord for Min<T>
-where T: Ord
-{
+impl<T: Ord> Ord for Min<T> {
   fn cmp(&self, other: &Self) -> Ordering {
     other.0.cmp(&self.0)
   }
 }
 
-impl<T> Debug for Min<T> where T: PartialOrd + Ord + Debug {
+impl<T: Ord + Debug> Debug for Min<T> {
   fn fmt(&self, f: &mut Formatter<'_>) -> Result {
     write!(f, "{:?}", self.0)
   }

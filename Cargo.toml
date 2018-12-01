@@ -3,4 +3,5 @@ name = "medianheap"
 version = "0.1.0"
 authors = ["Markus Reiter <me@reitermark.us>"]
 
-[dependencies]
+[dev-dependencies]
+ordered-float = "1.0"

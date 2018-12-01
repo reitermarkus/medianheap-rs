@@ -5,3 +5,6 @@ mod min;
 
 mod median_heap;
 pub use crate::median_heap::MedianHeap;
+
+#[cfg(test)]
+extern crate ordered_float;

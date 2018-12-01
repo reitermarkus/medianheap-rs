@@ -1,19 +1,18 @@
 use std::collections::BinaryHeap;
 use std::cmp::Ordering::*;
 use std::fmt::{Debug, Formatter, Result};
+use std::ops::{Add, Div};
 
 use crate::max::Max;
 use crate::min::Min;
 
-pub struct MedianHeap<T>
-where T: PartialEq + PartialOrd + Ord,
-{
+pub struct MedianHeap<T: Ord> {
   max_size: Option<usize>,
   left: BinaryHeap<Max<T>>,
   right: BinaryHeap<Min<T>>,
 }
 
-impl<T> Debug for MedianHeap<T> where T: PartialOrd + Ord + Debug {
+impl<T: Ord + Debug> Debug for MedianHeap<T> {
   fn fmt(&self, f: &mut Formatter<'_>) -> Result {
     write!(f, "MaxHeap {{ ")?;
 
@@ -25,9 +24,7 @@ impl<T> Debug for MedianHeap<T> where T: PartialOrd + Ord + Debug {
   }
 }
 
-impl<T> MedianHeap<T>
-where T: PartialEq + PartialOrd + Ord,
-{
+impl<T: Ord + From<f32> + Add<Output = T> + Div<T, Output = T> + Copy> MedianHeap<T> {
   pub fn new() -> Self {
     Self {
       max_size: None,
@@ -42,22 +39,30 @@ where T: PartialEq + PartialOrd + Ord,
     median_heap
   }
 
-  pub fn median(&self) -> Option<&T> {
+  pub fn median(&self) -> Option<T> {
     match self.left.len().cmp(&self.right.len()) {
-      Less    => self.right.peek().map(|item| &item.0),
-      Greater => self.left.peek().map(|item| &item.0),
-      Equal   => self.left.peek().map(|item| &item.0),
+      Less    => self.right.peek().map(|item| item.0),
+      Greater => self.left.peek().map(|item| item.0),
+      Equal   => {
+        self.left.peek().and_then(|left| {
+          self.right.peek().map(|right| {
+            (left.0 + right.0) / T::from(2f32)
+          })
+        })
+      },
     }
   }
 
-  pub fn insert(&mut self, item: T) {
+  pub fn insert(&mut self, item: impl Into<T>) {
+    let item = item.into();
+
     if self.max_size == Some(0) {
       return
     }
 
     let ordering = match self.median() {
-      Some(median) if &item < median => Less,
-      Some(median) if &item > median => Greater,
+      Some(median) if &item < &median => Less,
+      Some(median) if &item > &median => Greater,
       _ => Equal,
     };
 
@@ -145,6 +150,8 @@ mod tests {
   use super::*;
   use std::collections::BinaryHeap;
 
+  use ordered_float::NotNan;
+
   #[test]
   fn max_heap() {
     let mut heap = BinaryHeap::new();
@@ -167,102 +174,102 @@ mod tests {
 
   #[test]
   fn binary_heap_into_vec() {
-    let mut heap = MedianHeap::new();
+    let mut heap = MedianHeap::<NotNan<f32>>::new();
 
-    heap.insert(1);
-    heap.insert(2);
-    heap.insert(3);
-    heap.insert(4);
+    heap.insert(1.0);
+    heap.insert(2.0);
+    heap.insert(3.0);
+    heap.insert(4.0);
 
-    assert_eq!(heap.left.into_vec(), vec![Max(2), Max(1)]);
-    assert_eq!(heap.right.into_vec(), vec![Min(3), Min(4)]);
+    assert_eq!(heap.left.into_vec(), vec![Max(2.0.into()), Max(1.0.into())]);
+    assert_eq!(heap.right.into_vec(), vec![Min(3.0.into()), Min(4.0.into())]);
   }
 
   #[test]
   fn insert() {
-    let mut heap = MedianHeap::new();
+    let mut heap = MedianHeap::<NotNan<f32>>::new();
 
-    heap.insert(1);
-    assert_eq!(heap.median(), Some(&1));
+    heap.insert(1.0);
+    assert_eq!(heap.median(), Some(1.0.into()));
 
-    heap.insert(2);
-    assert_eq!(heap.median(), Some(&1));
+    heap.insert(2.0);
+    assert_eq!(heap.median(), Some(1.5.into()));
 
-    heap.insert(3);
-    assert_eq!(heap.median(), Some(&2));
+    heap.insert(3.0);
+    assert_eq!(heap.median(), Some(2.0.into()));
 
-    heap.insert(4);
-    assert_eq!(heap.median(), Some(&2));
+    heap.insert(4.0);
+    assert_eq!(heap.median(), Some(2.5.into()));
 
-    heap.insert(5);
-    assert_eq!(heap.median(), Some(&3));
+    heap.insert(5.0);
+    assert_eq!(heap.median(), Some(3.0.into()));
 
-    heap.insert(1);
-    assert_eq!(heap.median(), Some(&2));
+    heap.insert(1.0);
+    assert_eq!(heap.median(), Some(2.5.into()));
   }
 
   #[test]
   fn insert_ascending() {
-    let mut heap = MedianHeap::new();
+    let mut heap = MedianHeap::<NotNan<f32>>::new();
 
-    heap.insert(1);
-    heap.insert(2);
-    heap.insert(3);
-    heap.insert(4);
-    heap.insert(5);
+    heap.insert(1.0);
+    heap.insert(2.0);
+    heap.insert(3.0);
+    heap.insert(4.0);
+    heap.insert(5.0);
 
-    assert_eq!(heap.median(), Some(&3));
+    assert_eq!(heap.median(), Some(3.0.into()));
   }
 
   #[test]
   fn insert_descending() {
-    let mut heap = MedianHeap::new();
+    let mut heap = MedianHeap::<NotNan<f32>>::new();
 
-    heap.insert(5);
-    heap.insert(4);
-    heap.insert(3);
-    heap.insert(2);
-    heap.insert(1);
+    heap.insert(5.0);
+    heap.insert(4.0);
+    heap.insert(3.0);
+    heap.insert(2.0);
+    heap.insert(1.0);
 
-    assert_eq!(heap.median(), Some(&3));
+    assert_eq!(heap.median(), Some(3.0.into()));
   }
 
   #[test]
   fn max_size_0() {
-    let mut heap = MedianHeap::with_max_size(0);
+    let mut heap = MedianHeap::<NotNan<f32>>::with_max_size(0);
 
-    heap.insert(1);
+    heap.insert(1.0);
     assert_eq!(heap.median(), None);
     assert_eq!(heap.len(), 0);
-    heap.insert(2);
+    heap.insert(2.0);
     assert_eq!(heap.median(), None);
     assert_eq!(heap.len(), 0);
-    heap.insert(3);
+    heap.insert(3.0);
     assert_eq!(heap.median(), None);
     assert_eq!(heap.len(), 0);
   }
 
   #[test]
   fn max_size_1() {
-    let mut heap = MedianHeap::with_max_size(1);
+    let mut heap = MedianHeap::<NotNan<f32>>::with_max_size(1);
 
-    heap.insert(1);
-    assert_eq!(heap.median(), Some(&1));
+    heap.insert(1.0);
+    assert_eq!(heap.median(), Some(1.0.into()));
     assert_eq!(heap.len(), 1);
-    heap.insert(2);
-    assert_eq!(heap.median(), Some(&2));
+    heap.insert(2.0);
+    assert_eq!(heap.median(), Some(2.0.into()));
     assert_eq!(heap.len(), 1);
-    heap.insert(3);
-    assert_eq!(heap.median(), Some(&3));
+    heap.insert(3.0);
+    assert_eq!(heap.median(), Some(3.0.into()));
     assert_eq!(heap.len(), 1);
   }
 
   #[test]
   fn max_size_8() {
-    let mut heap = MedianHeap::with_max_size(8);
+    let mut heap = MedianHeap::<NotNan<f32>>::with_max_size(8);
 
     for i in 0..100 {
-      heap.insert(i);
+      heap.insert(i as f32);
 
       if i < 8 {
         assert_eq!(heap.len(), i + 1);
@@ -271,7 +278,7 @@ mod tests {
       }
     }
 
-    assert_eq!(heap.median(), Some(&95));
+    assert_eq!(heap.median(), Some(95.5.into()));
     assert_eq!(heap.len(), 8);
   }
 }
