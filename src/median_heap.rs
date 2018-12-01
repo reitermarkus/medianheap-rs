@@ -4,6 +4,8 @@ use std::cmp::{Ordering::*, Reverse};
 use std::fmt::{Debug, Formatter, Result};
 use std::ops::{Add, Div};
 
+use num_traits::FromPrimitive;
+
 #[derive(Default)]
 pub struct MedianHeap<T: Ord> {
   max_size: Option<usize>,
@@ -23,7 +25,8 @@ impl<T: Ord + Debug> Debug for MedianHeap<T> {
   }
 }
 
-impl<T: Ord + From<f32> + Add<Output = T> + Div<T, Output = T> + Copy> MedianHeap<T> {
+impl<T: Ord + FromPrimitive + Add<Output = T> + Div<T, Output = T> + Debug + Copy> MedianHeap<T> {
+  /// Creates an empty `MedianHeap`.
   pub fn new() -> Self {
     Self {
       max_size: None,
@@ -32,27 +35,83 @@ impl<T: Ord + From<f32> + Add<Output = T> + Div<T, Output = T> + Copy> MedianHea
     }
   }
 
+  /// Creates an empty `MedianHeap` which can only grow to `max_size`.
   pub fn with_max_size(max_size: usize) -> Self {
     let mut median_heap = Self::new();
     median_heap.max_size = Some(max_size);
     median_heap
   }
 
+  /// This either returns
+  ///   - `Some(T)` containing the median value if there are an odd number of elements
+  ///   - `Some(T)` containing the arithmetic mean of the two middlemost values if there are an even number of elements
+  ///   - `None` if the heap is empty
+  ///
+  /// # Examples
+  ///
+  /// Basic usage:
+  ///
+  /// ```
+  /// # extern crate ordered_float;
+  /// # extern crate medianheap;
+  /// use ordered_float::NotNan;
+  /// # use medianheap::MedianHeap;
+  ///
+  /// let mut heap = MedianHeap::<NotNan<f32>>::new();
+  ///
+  /// assert_eq!(heap.median(), None);
+  ///
+  /// heap.push(1.0);
+  /// assert_eq!(heap.median(), Some(1.0.into()));
+  ///
+  /// heap.push(2.0);
+  /// assert_eq!(heap.median(), Some(1.5.into()));
+  /// ```
   pub fn median(&self) -> Option<T> {
     match self.left.len().cmp(&self.right.len()) {
       Less    => self.right.peek().map(|item| item.0),
       Greater => self.left.peek().cloned(),
       Equal   => {
         self.left.peek().cloned().and_then(|left| {
-          self.right.peek().map(|right| {
-            (left + right.0) / T::from(2f32)
+          self.right.peek().and_then(|right| {
+            T::from_u8(2).map(|div| (left + right.0) / div)
           })
         })
       },
     }
   }
 
-  pub fn insert(&mut self, item: impl Into<T>) {
+  /// Pushes an item onto the binary heap.
+  ///
+  ///
+  ///
+  /// When `max_size` is set and the heap is full, this will remove
+  ///   - the smallest item, if the pushed item is greater than `>` the current median
+  ///   - the largest item, if the pushed item is less than `<` the current median
+  ///   - if the pushed item is equal `==` to the current median
+  ///     - the smallest item, if the item occurs more often on the right side side of median
+  ///     - the largest item, if the item occurs more often on the left side side of median
+  ///     - both the smallest and the largest item, if the item occurs equally as often on the left side and the right side of median
+  ///
+  /// # Examples
+  ///
+  /// Basic usage:
+  ///
+  /// ```
+  /// # extern crate ordered_float;
+  /// # extern crate medianheap;
+  /// use ordered_float::NotNan;
+  /// # use medianheap::MedianHeap;
+  ///
+  /// let mut heap = MedianHeap::<NotNan<f32>>::new();
+  ///
+  /// heap.push(1.0);
+  /// heap.push(2.0);
+  /// heap.push(3.0);
+  ///
+  /// assert_eq!(heap.len(), 3);
+  /// ```
+  pub fn push(&mut self, item: impl Into<T>) {
     let item = item.into();
 
     if self.max_size == Some(0) {
@@ -72,6 +131,10 @@ impl<T: Ord + From<f32> + Add<Output = T> + Div<T, Output = T> + Copy> MedianHea
         }
 
         self.left.push(item);
+
+        if self.left.len() > self.right.len() + 1 {
+          self.right.push(Reverse(self.left.pop().unwrap()));
+        }
       },
       Greater => {
         if self.is_full() {
@@ -79,28 +142,57 @@ impl<T: Ord + From<f32> + Add<Output = T> + Div<T, Output = T> + Copy> MedianHea
         }
 
         self.right.push(Reverse(item));
+
+        if self.right.len() > self.left.len() {
+          self.left.push(self.right.pop().unwrap().0);
+        }
       },
-      Equal if self.left.len() > self.right.len() => self.right.push(Reverse(item)),
       Equal => {
         if self.is_full() {
-          self.pop_min();
-        }
+          let mut left = Vec::new();
+          let mut right = Vec::new();
 
-        self.left.push(item);
+          while self.left.peek() == Some(&item) {
+            left.push(self.left.pop().unwrap());
+          }
+
+          while self.right.peek() == Some(&Reverse(item)) {
+            right.push(self.right.pop().unwrap());
+          }
+
+          match left.len().cmp(&right.len()) {
+            Less => {
+              self.pop_min();
+              self.left.push(item);
+            },
+            Greater => {
+              self.pop_max();
+              self.right.push(Reverse(item))
+            },
+            Equal => {
+              self.pop_min();
+              self.pop_max();
+              self.left.push(item);
+            }
+          }
+
+          for i in left { self.left.push(i); }
+          for i in right { self.right.push(i); }
+        } else if self.left.len() > self.right.len() {
+          self.right.push(Reverse(item));
+        } else {
+          self.left.push(item);
+        }
       },
     };
-
-    if self.right.len() > self.left.len() {
-      self.left.push(self.right.pop().unwrap().0);
-    } else if self.left.len() > self.right.len() + 1 {
-      self.right.push(Reverse(self.left.pop().unwrap()));
-    }
   }
 
+  /// Returns `true` if there are no elements on the heap.
   pub fn is_empty(&self) -> bool {
     self.left.is_empty() && self.right.is_empty()
   }
 
+  /// Returns the length of the heap.
   pub fn len(&self) -> usize {
     self.left.len() + self.right.len()
   }
@@ -145,63 +237,50 @@ mod tests {
   use ordered_float::NotNan;
 
   #[test]
-  fn binary_heap_into_vec() {
+  fn push() {
     let mut heap = MedianHeap::<NotNan<f32>>::new();
 
-    heap.insert(1.0);
-    heap.insert(2.0);
-    heap.insert(3.0);
-    heap.insert(4.0);
-
-    assert_eq!(heap.left.into_vec(), vec![2.0.into(), 1.0.into()]);
-    assert_eq!(heap.right.into_vec(), vec![Reverse(3.0.into()), Reverse(4.0.into())]);
-  }
-
-  #[test]
-  fn insert() {
-    let mut heap = MedianHeap::<NotNan<f32>>::new();
-
-    heap.insert(1.0);
+    heap.push(1.0);
     assert_eq!(heap.median(), Some(1.0.into()));
 
-    heap.insert(2.0);
+    heap.push(2.0);
     assert_eq!(heap.median(), Some(1.5.into()));
 
-    heap.insert(3.0);
+    heap.push(3.0);
     assert_eq!(heap.median(), Some(2.0.into()));
 
-    heap.insert(4.0);
+    heap.push(4.0);
     assert_eq!(heap.median(), Some(2.5.into()));
 
-    heap.insert(5.0);
+    heap.push(5.0);
     assert_eq!(heap.median(), Some(3.0.into()));
 
-    heap.insert(1.0);
+    heap.push(1.0);
     assert_eq!(heap.median(), Some(2.5.into()));
   }
 
   #[test]
-  fn insert_ascending() {
+  fn push_ascending() {
     let mut heap = MedianHeap::<NotNan<f32>>::new();
 
-    heap.insert(1.0);
-    heap.insert(2.0);
-    heap.insert(3.0);
-    heap.insert(4.0);
-    heap.insert(5.0);
+    heap.push(1.0);
+    heap.push(2.0);
+    heap.push(3.0);
+    heap.push(4.0);
+    heap.push(5.0);
 
     assert_eq!(heap.median(), Some(3.0.into()));
   }
 
   #[test]
-  fn insert_descending() {
+  fn push_descending() {
     let mut heap = MedianHeap::<NotNan<f32>>::new();
 
-    heap.insert(5.0);
-    heap.insert(4.0);
-    heap.insert(3.0);
-    heap.insert(2.0);
-    heap.insert(1.0);
+    heap.push(5.0);
+    heap.push(4.0);
+    heap.push(3.0);
+    heap.push(2.0);
+    heap.push(1.0);
 
     assert_eq!(heap.median(), Some(3.0.into()));
   }
@@ -210,13 +289,13 @@ mod tests {
   fn max_size_0() {
     let mut heap = MedianHeap::<NotNan<f32>>::with_max_size(0);
 
-    heap.insert(1.0);
+    heap.push(1.0);
     assert_eq!(heap.median(), None);
     assert_eq!(heap.len(), 0);
-    heap.insert(2.0);
+    heap.push(2.0);
     assert_eq!(heap.median(), None);
     assert_eq!(heap.len(), 0);
-    heap.insert(3.0);
+    heap.push(3.0);
     assert_eq!(heap.median(), None);
     assert_eq!(heap.len(), 0);
   }
@@ -225,13 +304,13 @@ mod tests {
   fn max_size_1() {
     let mut heap = MedianHeap::<NotNan<f32>>::with_max_size(1);
 
-    heap.insert(1.0);
+    heap.push(1.0);
     assert_eq!(heap.median(), Some(1.0.into()));
     assert_eq!(heap.len(), 1);
-    heap.insert(2.0);
+    heap.push(2.0);
     assert_eq!(heap.median(), Some(2.0.into()));
     assert_eq!(heap.len(), 1);
-    heap.insert(3.0);
+    heap.push(3.0);
     assert_eq!(heap.median(), Some(3.0.into()));
     assert_eq!(heap.len(), 1);
   }
@@ -241,7 +320,7 @@ mod tests {
     let mut heap = MedianHeap::<NotNan<f32>>::with_max_size(8);
 
     for i in 0..100 {
-      heap.insert(i as f32);
+      heap.push(i as f32);
 
       if i < 8 {
         assert_eq!(heap.len(), i + 1);
@@ -252,5 +331,50 @@ mod tests {
 
     assert_eq!(heap.median(), Some(95.5.into()));
     assert_eq!(heap.len(), 8);
+  }
+
+  #[test]
+  fn f32() {
+    MedianHeap::<NotNan<f32>>::new();
+  }
+
+  #[test]
+  fn f64() {
+    MedianHeap::<NotNan<f64>>::new();
+  }
+
+  #[test]
+  fn max_size_balancing() {
+    let mut heap = MedianHeap::<NotNan<f64>>::with_max_size(8);
+
+    for _ in 0..8 {
+      heap.push(100.0);
+    }
+
+    assert_eq!(heap.left.clone().into_sorted_vec(), vec![100.0.into(); 4]);
+    assert_eq!(heap.right.clone().into_sorted_vec(), vec![Reverse(100.0.into()); 4]);
+
+    for _ in 0..8 {
+      heap.push(2.0);
+    }
+
+    assert_eq!(heap.left.clone().into_sorted_vec(), vec![2.0.into(); 4]);
+    assert_eq!(heap.right.clone().into_sorted_vec(), vec![Reverse(2.0.into()); 4]);
+
+    heap.push(1.0);
+    assert_eq!(heap.left.clone().into_sorted_vec(), vec![1.0.into(), 2.0.into(), 2.0.into(), 2.0.into()]);
+    assert_eq!(heap.right.clone().into_sorted_vec(), vec![Reverse(2.0.into()), Reverse(2.0.into()), Reverse(2.0.into()), Reverse(2.0.into())]);
+
+    heap.push(1.0);
+    assert_eq!(heap.left.clone().into_sorted_vec(), vec![1.0.into(), 1.0.into(), 2.0.into(), 2.0.into()]);
+    assert_eq!(heap.right.clone().into_sorted_vec(), vec![Reverse(2.0.into()), Reverse(2.0.into()), Reverse(2.0.into()), Reverse(2.0.into())]);
+
+    heap.push(3.0);
+    assert_eq!(heap.left.clone().into_sorted_vec(), vec![1.0.into(), 2.0.into(), 2.0.into(), 2.0.into()]);
+    assert_eq!(heap.right.clone().into_sorted_vec(), vec![Reverse(3.0.into()), Reverse(2.0.into()), Reverse(2.0.into()), Reverse(2.0.into())]);
+
+    heap.push(2.0);
+    assert_eq!(heap.left.clone().into_sorted_vec(), vec![2.0.into(); 4]);
+    assert_eq!(heap.right.clone().into_sorted_vec(), vec![Reverse(2.0.into()); 3]);
   }
 }
