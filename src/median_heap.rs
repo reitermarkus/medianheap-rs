@@ -6,11 +6,19 @@ use std::ops::{Add, Div};
 
 use num_traits::FromPrimitive;
 
-#[derive(Default)]
+/// A median heap implemented with two binary heaps.
 pub struct MedianHeap<T: Ord> {
   max_size: Option<usize>,
   left: BinaryHeap<T>,
   right: BinaryHeap<Reverse<T>>,
+}
+
+impl<T: Ord> Default for MedianHeap<T> {
+  /// Creates an empty `MedianHeap<T>`.
+  #[inline]
+  fn default() -> Self {
+    Self::new()
+  }
 }
 
 impl<T: Ord + Debug> Debug for MedianHeap<T> {
@@ -25,9 +33,23 @@ impl<T: Ord + Debug> Debug for MedianHeap<T> {
   }
 }
 
-impl<T: Ord + FromPrimitive + Add<Output = T> + Div<T, Output = T> + Debug + Copy> MedianHeap<T> {
+impl<T: Ord> MedianHeap<T> {
   /// Creates an empty `MedianHeap`.
-  pub fn new() -> Self {
+  ///
+  /// # Examples
+  ///
+  /// Basic usage:
+  ///
+  /// ```
+  /// # extern crate ordered_float;
+  /// # extern crate medianheap;
+  /// use ordered_float::NotNan;
+  /// # use medianheap::MedianHeap;
+  ///
+  /// let mut heap = MedianHeap::<NotNan<_>>::new();
+  /// heap.push(3.14);
+  /// ```
+  pub fn new() -> Self  {
     Self {
       max_size: None,
       left: BinaryHeap::new(),
@@ -36,12 +58,105 @@ impl<T: Ord + FromPrimitive + Add<Output = T> + Div<T, Output = T> + Debug + Cop
   }
 
   /// Creates an empty `MedianHeap` which can only grow to `max_size`.
-  pub fn with_max_size(max_size: usize) -> Self {
+  ///
+  /// # Examples
+  ///
+  /// Basic usage:
+  ///
+  /// ```
+  /// # extern crate ordered_float;
+  /// # extern crate medianheap;
+  /// use ordered_float::NotNan;
+  /// # use medianheap::MedianHeap;
+  ///
+  /// let mut heap = MedianHeap::<NotNan<_>>::with_max_size(42);
+  /// heap.push(2.71);
+  /// ```
+  pub fn with_max_size(max_size: usize) -> Self  {
     let mut median_heap = Self::new();
     median_heap.max_size = Some(max_size);
     median_heap
   }
 
+  /// Returns the length of the heap.
+  ///
+  /// # Examples
+  ///
+  /// Basic usage:
+  ///
+  /// ```
+  /// # extern crate ordered_float;
+  /// # extern crate medianheap;
+  /// use ordered_float::NotNan;
+  /// # use medianheap::MedianHeap;
+  ///
+  /// let mut heap = MedianHeap::<NotNan<f32>>::new();
+  ///
+  /// assert_eq!(heap.len(), 0);
+  ///
+  /// heap.push(1.0);
+  /// assert_eq!(heap.len(), 1);
+  /// ```
+  pub fn len(&self) -> usize {
+    self.left.len() + self.right.len()
+  }
+
+  /// Returns `true` if there are no elements on the heap.
+  ///
+  /// # Examples
+  ///
+  /// Basic usage:
+  ///
+  /// ```
+  /// # extern crate ordered_float;
+  /// # extern crate medianheap;
+  /// use ordered_float::NotNan;
+  /// # use medianheap::MedianHeap;
+  ///
+  /// let mut heap = MedianHeap::<NotNan<f32>>::new();
+  ///
+  /// assert_eq!(heap.is_empty(), true);
+  /// ```
+  pub fn is_empty(&self) -> bool {
+    self.left.is_empty() && self.right.is_empty()
+  }
+
+  fn is_full(&self) -> bool {
+    if let Some(max_size) = self.max_size {
+      self.left.len() + self.right.len() >= max_size
+    } else {
+      false
+    }
+  }
+
+  fn pop_min(&mut self) {
+    if self.left.is_empty() {
+      return
+    }
+
+    let heap = mem::replace(&mut self.left, BinaryHeap::with_capacity(0));
+    let mut vec = heap.into_sorted_vec();
+    vec.remove(0);
+
+    self.left = BinaryHeap::from(vec);
+  }
+
+  fn pop_max(&mut self) {
+    if self.right.is_empty() {
+      return
+    }
+
+    let heap = mem::replace(&mut self.right, BinaryHeap::with_capacity(0));
+    let mut vec = heap.into_sorted_vec();
+    vec.remove(0);
+
+    self.right = BinaryHeap::from(vec);
+  }
+}
+
+impl<T> MedianHeap<T> where
+  T: Ord + FromPrimitive + Add<Output = T> + Div<Output = T> + Copy
+{
   /// This either returns
   ///   - `Some(T)` containing the median value if there are an odd number of elements
   ///   - `Some(T)` containing the arithmetic mean of the two middlemost values if there are an even number of elements
@@ -81,9 +196,7 @@ impl<T: Ord + FromPrimitive + Add<Output = T> + Div<T, Output = T> + Debug + Cop
     }
   }
 
-  /// Pushes an item onto the binary heap.
-  ///
-  ///
+  /// Pushes an item onto the median heap.
   ///
   /// When `max_size` is set and the heap is full, this will remove
   ///   - the smallest item, if the pushed item is greater than `>` the current median
@@ -185,48 +298,6 @@ impl<T: Ord + FromPrimitive + Add<Output = T> + Div<T, Output = T> + Debug + Cop
         }
       },
     };
-  }
-
-  /// Returns `true` if there are no elements on the heap.
-  pub fn is_empty(&self) -> bool {
-    self.left.is_empty() && self.right.is_empty()
-  }
-
-  /// Returns the length of the heap.
-  pub fn len(&self) -> usize {
-    self.left.len() + self.right.len()
-  }
-
-  fn is_full(&self) -> bool {
-    if let Some(max_size) = self.max_size {
-      self.left.len() + self.right.len() >= max_size
-    } else {
-      false
-    }
-  }
-
-  fn pop_min(&mut self) {
-    if self.left.is_empty() {
-      return
-    }
-
-    let heap = mem::replace(&mut self.left, BinaryHeap::with_capacity(0));
-    let mut vec = heap.into_sorted_vec();
-    vec.remove(0);
-
-    self.left = BinaryHeap::from(vec);
-  }
-
-  fn pop_max(&mut self) {
-    if self.right.is_empty() {
-      return
-    }
-
-    let heap = mem::replace(&mut self.right, BinaryHeap::with_capacity(0));
-    let mut vec = heap.into_sorted_vec();
-    vec.remove(0);
-
-    self.right = BinaryHeap::from(vec);
   }
 }
 
