@@ -1,0 +1,29 @@
+language: rust
+sudo: false
+cache: cargo
+
+matrix:
+  include:
+    - name: cargo test
+      rust: stable
+      os: osx
+
+    - name: cargo test
+      rust: nightly
+      os: osx
+
+    - name: cargo test
+      rust: stable
+      os: linux
+
+    - name: cargo test
+      rust: nightly
+      os: linux
+
+script:
+  - cargo test --all --all-features
+  - cargo test --all --all-features --release
+
+notifications:
+  email:
+    on_success: never
