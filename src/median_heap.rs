@@ -59,6 +59,10 @@ impl<T: Ord> MedianHeap<T> {
 
   /// Creates an empty `MedianHeap` which can only grow to `max_size`.
   ///
+  /// # Panics
+  ///
+  /// Panics if `max_size` is zero.
+  ///
   /// # Examples
   ///
   /// Basic usage:
@@ -73,9 +77,15 @@ impl<T: Ord> MedianHeap<T> {
   /// heap.push(2.71);
   /// ```
   pub fn with_max_size(max_size: usize) -> Self  {
-    let mut median_heap = Self::new();
-    median_heap.max_size = Some(max_size);
-    median_heap
+    assert!(max_size > 0);
+
+    let heap_size = (max_size + 1) / 2;
+
+    Self {
+      max_size: Some(max_size),
+      left: BinaryHeap::with_capacity(heap_size),
+      right: BinaryHeap::with_capacity(heap_size),
+    }
   }
 
   /// Returns the length of the heap.
@@ -227,10 +237,6 @@ impl<T> MedianHeap<T> where
   pub fn push(&mut self, item: impl Into<T>) {
     let item = item.into();
 
-    if self.max_size == Some(0) {
-      return
-    }
-
     match self.median().map(|median| item.cmp(&median)).unwrap_or(Equal) {
       Less => {
         if self.is_full() {
@@ -351,18 +357,9 @@ mod tests {
   }
 
   #[test]
+  #[should_panic]
   fn max_size_0() {
-    let mut heap = MedianHeap::<NotNan<f32>>::with_max_size(0);
-
-    heap.push(1.0);
-    assert_eq!(heap.median(), None);
-    assert_eq!(heap.len(), 0);
-    heap.push(2.0);
-    assert_eq!(heap.median(), None);
-    assert_eq!(heap.len(), 0);
-    heap.push(3.0);
-    assert_eq!(heap.median(), None);
-    assert_eq!(heap.len(), 0);
+    MedianHeap::<NotNan<f32>>::with_max_size(0);
   }
 
   #[test]
