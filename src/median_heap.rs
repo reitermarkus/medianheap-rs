@@ -156,7 +156,13 @@ impl<T: Ord + AverageWith + Clone> MedianHeap<T> {
     let heap = mem::replace(orig_heap, BinaryHeap::with_capacity(0));
 
     let len = heap.len();
-    let height = (len as f64).log2();
+
+    #[inline(always)]
+    fn log2_fast(x: usize) -> usize {
+      8 * mem::size_of::<usize>() - (x.leading_zeros() as usize) - 1
+    }
+
+    let height = log2_fast(len);
     let max_leaves = 2u64.pow(height as u32) as usize;
     let mut first_leaf_index = max_leaves - 1;
 
