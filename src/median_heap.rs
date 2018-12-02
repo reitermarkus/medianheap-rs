@@ -2,9 +2,8 @@ use std::mem;
 use std::collections::BinaryHeap;
 use std::cmp::{Ordering::*, Reverse};
 use std::fmt::{Debug, Formatter, Result};
-use std::ops::{Add, Div};
 
-use num_traits::FromPrimitive;
+use crate::average_with::AverageWith;
 
 /// A median heap implemented with two binary heaps.
 pub struct MedianHeap<T: Ord> {
@@ -184,7 +183,7 @@ impl<T: Ord> MedianHeap<T> {
 }
 
 impl<T> MedianHeap<T> where
-  T: Ord + FromPrimitive + Add<Output = T> + Div<Output = T> + Clone
+  T: Ord + AverageWith + Clone
 {
   /// This either returns
   ///   - `Some(T)` containing the median value if there are an odd number of elements
@@ -218,7 +217,7 @@ impl<T> MedianHeap<T> where
       Equal   => {
         self.left.peek().cloned().and_then(|left| {
           self.right.peek().cloned().and_then(|right| {
-            T::from_u8(2).map(|div| (left + right.0) / div)
+            Some(left.average_with(&right.0))
           })
         })
       },
