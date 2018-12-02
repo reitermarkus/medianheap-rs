@@ -79,7 +79,7 @@ impl<T: Ord> MedianHeap<T> {
   pub fn with_max_size(max_size: usize) -> Self  {
     assert!(max_size > 0);
 
-    let heap_size = (max_size + 1) / 2;
+    let heap_size = (max_size + 3) / 2;
 
     Self {
       max_size: Some(max_size),
@@ -238,60 +238,45 @@ impl<T> MedianHeap<T> where
     let item = item.into();
 
     match self.median().map(|median| item.cmp(&median)).unwrap_or(Equal) {
-      Less => {
-        if self.is_full() {
-          self.pop_max();
+      Less if self.is_full() => {
+        self.left.push(item);
+
+        if self.left.len() > self.right.len() {
+          self.right.push(Reverse(self.left.pop().unwrap()));
         }
 
+        self.pop_max();
+      },
+      Less => {
         self.left.push(item);
 
         if self.left.len() > self.right.len() + 1 {
           self.right.push(Reverse(self.left.pop().unwrap()));
         }
       },
-      Greater => {
-        if self.is_full() {
-          self.pop_min();
-        }
-
+      Greater if self.is_full() => {
         self.right.push(Reverse(item));
 
         if self.right.len() > self.left.len() {
           self.left.push(self.right.pop().unwrap().0);
         }
+
+        self.pop_min();
+      },
+      Greater => {
+        self.right.push(Reverse(item));
+
+        if self.right.len() > self.left.len() + 1 {
+          self.left.push(self.right.pop().unwrap().0);
+        }
       },
       Equal => {
         if self.is_full() {
-          let mut left = Vec::new();
-          let mut right = Vec::new();
+          self.pop_min();
+          self.pop_max();
+        }
 
-          while self.left.peek() == Some(&item) {
-            left.push(self.left.pop().unwrap());
-          }
-
-          while self.right.peek().map(|ref i| &i.0) == Some(&item) {
-            right.push(self.right.pop().unwrap());
-          }
-
-          match left.len().cmp(&right.len()) {
-            Less => {
-              self.pop_min();
-              self.left.push(item);
-            },
-            Greater => {
-              self.pop_max();
-              self.right.push(Reverse(item))
-            },
-            Equal => {
-              self.pop_min();
-              self.pop_max();
-              self.left.push(item);
-            }
-          }
-
-          for i in left { self.left.push(i); }
-          for i in right { self.right.push(i); }
-        } else if self.left.len() > self.right.len() {
+        if self.left.len() > self.right.len() {
           self.right.push(Reverse(item));
         } else {
           self.left.push(item);
@@ -369,11 +354,41 @@ mod tests {
     heap.push(1.0);
     assert_eq!(heap.median(), Some(1.0.into()));
     assert_eq!(heap.len(), 1);
+    heap.push(1.0);
+    assert_eq!(heap.median(), Some(1.0.into()));
+    assert_eq!(heap.len(), 1);
+    heap.push(1.0);
+    assert_eq!(heap.median(), Some(1.0.into()));
+    assert_eq!(heap.len(), 1);
+  }
+
+  #[test]
+  fn max_size_1_asc() {
+    let mut heap = MedianHeap::<NotNan<f32>>::with_max_size(1);
+
+    heap.push(1.0);
+    assert_eq!(heap.median(), Some(1.0.into()));
+    assert_eq!(heap.len(), 1);
     heap.push(2.0);
     assert_eq!(heap.median(), Some(2.0.into()));
     assert_eq!(heap.len(), 1);
     heap.push(3.0);
     assert_eq!(heap.median(), Some(3.0.into()));
+    assert_eq!(heap.len(), 1);
+  }
+
+  #[test]
+  fn max_size_1_desc() {
+    let mut heap = MedianHeap::<NotNan<f32>>::with_max_size(1);
+
+    heap.push(3.0);
+    assert_eq!(heap.median(), Some(3.0.into()));
+    assert_eq!(heap.len(), 1);
+    heap.push(2.0);
+    assert_eq!(heap.median(), Some(2.0.into()));
+    assert_eq!(heap.len(), 1);
+    heap.push(1.0);
+    assert_eq!(heap.median(), Some(1.0.into()));
     assert_eq!(heap.len(), 1);
   }
 
@@ -416,7 +431,7 @@ mod tests {
     assert_eq!(heap.left.clone().into_sorted_vec(), vec![100.0.into(); 4]);
     assert_eq!(heap.right.clone().into_sorted_vec(), vec![Reverse(100.0.into()); 4]);
 
-    for _ in 0..8 {
+    for _ in 0..(8 * 3 / 2 + 1) {
       heap.push(2.0);
     }
 
