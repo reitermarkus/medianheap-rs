@@ -46,7 +46,7 @@ impl<T: Ord> MedianHeap<T> {
   /// use ordered_float::NotNan;
   /// # use medianheap::MedianHeap;
   ///
-  /// let mut heap = MedianHeap::<NotNan<_>>::new();
+  /// let mut heap = MedianHeap::<NotNan<f32>>::new();
   /// heap.push(3.14);
   /// ```
   pub fn new() -> Self  {
@@ -73,7 +73,7 @@ impl<T: Ord> MedianHeap<T> {
   /// use ordered_float::NotNan;
   /// # use medianheap::MedianHeap;
   ///
-  /// let mut heap = MedianHeap::<NotNan<_>>::with_max_size(42);
+  /// let mut heap = MedianHeap::<NotNan<f32>>::with_max_size(42);
   /// heap.push(2.71);
   /// ```
   pub fn with_max_size(max_size: usize) -> Self  {
@@ -86,6 +86,25 @@ impl<T: Ord> MedianHeap<T> {
       left: BinaryHeap::with_capacity(heap_size),
       right: BinaryHeap::with_capacity(heap_size),
     }
+  }
+
+  /// Returns the maximum size the median heap can grow to.
+  ///
+  /// # Examples
+  ///
+  /// Basic usage:
+  ///
+  /// ```
+  /// # extern crate ordered_float;
+  /// # extern crate medianheap;
+  /// use ordered_float::NotNan;
+  /// # use medianheap::MedianHeap;
+  ///
+  /// let heap = MedianHeap::<NotNan<f32>>::with_max_size(42);
+  /// assert_eq!(heap.max_size(), Some(42));
+  /// ```
+  pub fn max_size(&self) -> Option<usize> {
+    self.max_size
   }
 
   /// Returns the length of the heap.
