@@ -148,28 +148,41 @@ impl<T: Ord + AverageWith + Clone> MedianHeap<T> {
     }
   }
 
-  fn pop_min(&mut self) {
-    if self.left.is_empty() {
+  fn pop(orig_heap: &mut BinaryHeap<impl Ord>) {
+    if orig_heap.is_empty() {
       return
     }
 
-    let heap = mem::replace(&mut self.left, BinaryHeap::with_capacity(0));
-    let mut vec = heap.into_sorted_vec();
-    vec.remove(0);
+    let heap = mem::replace(orig_heap, BinaryHeap::with_capacity(0));
 
-    self.left = BinaryHeap::from(vec);
+    let len = heap.len();
+    let height = (len as f64).log2();
+    let max_leaves = 2u64.pow(height as u32) as usize;
+    let mut first_leaf_index = max_leaves - 1;
+
+    if (len - 1 - first_leaf_index) < max_leaves / 2 {
+      first_leaf_index -= max_leaves / 4;
+    }
+
+    let mut vec = heap.into_vec();
+
+    let smallest_index = (first_leaf_index + 1..vec.len()).fold(first_leaf_index, |i, j| {
+      if vec[j] < vec[i] { j } else { i }
+    });
+
+    vec.swap_remove(smallest_index);
+
+    mem::replace(orig_heap, BinaryHeap::from(vec));
   }
 
+  #[inline]
+  fn pop_min(&mut self) {
+    Self::pop(&mut self.left);
+  }
+
+  #[inline]
   fn pop_max(&mut self) {
-    if self.right.is_empty() {
-      return
-    }
-
-    let heap = mem::replace(&mut self.right, BinaryHeap::with_capacity(0));
-    let mut vec = heap.into_sorted_vec();
-    vec.remove(0);
-
-    self.right = BinaryHeap::from(vec);
+    Self::pop(&mut self.right);
   }
 
   /// This either returns
