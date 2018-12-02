@@ -2,6 +2,18 @@
 name = "medianheap"
 version = "0.1.0"
 authors = ["Markus Reiter <me@reitermark.us>"]
+license = "MIT OR Apache-2.0"
+readme = "ReadMe.md"
+description = "A median heap for keeping track of a running median."
+documentation = "https://docs.rs/medianheap"
+repository = "https://github.com/reitermarkus/medianheap-rs"
+homepage = "https://github.com/reitermarkus/medianheap-rs"
+keywords = ["median", "heap"]
+categories = ["data-structures"]
+exclude = ["/.travis.yml"]
+
+[badges]
+travis-ci = { repository = "reitermarkus/medianheap-rs" }
 
 [dependencies]
 ordered-float = { version = "1.0", optional = true }
