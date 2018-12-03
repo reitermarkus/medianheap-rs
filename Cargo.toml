@@ -20,3 +20,10 @@ ordered-float = { version = "1.0", optional = true }
 
 [features]
 default = ["ordered-float"]
+
+[dev-dependencies]
+criterion = "0.2"
+
+[[bench]]
+name = "max_size_push"
+harness = false
