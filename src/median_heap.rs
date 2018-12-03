@@ -1,4 +1,4 @@
-use std::cmp::{Ordering::*, Reverse};
+use std::cmp::{Ordering::*};
 use std::fmt::{Debug, Formatter, Result};
 
 use min_max_heap::MinMaxHeap;
@@ -9,7 +9,7 @@ use crate::average_with::AverageWith;
 pub struct MedianHeap<T: Ord> {
   max_size: Option<usize>,
   left: MinMaxHeap<T>,
-  right: MinMaxHeap<Reverse<T>>,
+  right: MinMaxHeap<T>,
 }
 
 impl<T: Ord> Default for MedianHeap<T> {
@@ -148,16 +148,6 @@ impl<T: Ord + AverageWith + Clone> MedianHeap<T> {
     }
   }
 
-  #[inline]
-  fn pop_min(&mut self) {
-    self.left.pop_min();
-  }
-
-  #[inline]
-  fn pop_max(&mut self) {
-    self.right.pop_min();
-  }
-
   /// This either returns
   ///   - `Some(T)` containing the median value if there are an odd number of elements
   ///   - `Some(T)` containing the arithmetic mean of the two middlemost values if there are an even number of elements
@@ -183,12 +173,12 @@ impl<T: Ord + AverageWith + Clone> MedianHeap<T> {
   /// ```
   pub fn median(&self) -> Option<T> {
     match self.left.len().cmp(&self.right.len()) {
-      Less    => self.right.peek_max().cloned().map(|item| item.0),
+      Less    => self.right.peek_min().cloned(),
       Greater => self.left.peek_max().cloned(),
       Equal   => {
         self.left.peek_max().cloned().and_then(|left| {
-          self.right.peek_max().cloned().and_then(|right| {
-            Some(left.average_with(&right.0))
+          self.right.peek_min().cloned().and_then(|right| {
+            Some(left.average_with(&right))
           })
         })
       },
@@ -253,42 +243,42 @@ impl<T: Ord + AverageWith + Clone> MedianHeap<T> {
         self.left.push(item);
 
         if self.left.len() > self.right.len() {
-          self.right.push(Reverse(self.left.pop_max().unwrap()));
+          self.right.push(self.left.pop_max().unwrap());
         }
 
-        self.pop_max();
+        self.right.pop_max();
       },
       Less => {
         self.left.push(item);
 
         if self.left.len() > self.right.len() + 1 {
-          self.right.push(Reverse(self.left.pop_max().unwrap()));
+          self.right.push(self.left.pop_max().unwrap());
         }
       },
       Greater if self.is_full() => {
-        self.right.push(Reverse(item));
+        self.right.push(item);
 
         if self.right.len() > self.left.len() {
-          self.left.push(self.right.pop_max().unwrap().0);
+          self.left.push(self.right.pop_min().unwrap());
         }
 
-        self.pop_min();
+        self.left.pop_min();
       },
       Greater => {
-        self.right.push(Reverse(item));
+        self.right.push(item);
 
         if self.right.len() > self.left.len() + 1 {
-          self.left.push(self.right.pop_max().unwrap().0);
+          self.left.push(self.right.pop_min().unwrap());
         }
       },
       Equal => {
         if self.is_full() {
-          self.pop_min();
-          self.pop_max();
+          self.left.pop_min();
+          self.right.pop_max();
         }
 
         if self.left.len() > self.right.len() {
-          self.right.push(Reverse(item));
+          self.right.push(item);
         } else {
           self.left.push(item);
         }
@@ -440,29 +430,29 @@ mod tests {
     }
 
     assert_eq!(heap.left.clone().into_vec_asc(), vec![100.0.into(); 4]);
-    assert_eq!(heap.right.clone().into_vec_asc(), vec![Reverse(100.0.into()); 4]);
+    assert_eq!(heap.right.clone().into_vec_desc(), vec![100.0.into(); 4]);
 
     for _ in 0..(8 * 3 / 2 + 1) {
       heap.push(2.0.into());
     }
 
     assert_eq!(heap.left.clone().into_vec_asc(), vec![2.0.into(); 4]);
-    assert_eq!(heap.right.clone().into_vec_asc(), vec![Reverse(2.0.into()); 4]);
+    assert_eq!(heap.right.clone().into_vec_desc(), vec![2.0.into(); 4]);
 
     heap.push(1.0.into());
     assert_eq!(heap.left.clone().into_vec_asc(), vec![1.0.into(), 2.0.into(), 2.0.into(), 2.0.into()]);
-    assert_eq!(heap.right.clone().into_vec_asc(), vec![Reverse(2.0.into()), Reverse(2.0.into()), Reverse(2.0.into()), Reverse(2.0.into())]);
+    assert_eq!(heap.right.clone().into_vec_desc(), vec![2.0.into(), 2.0.into(), 2.0.into(), 2.0.into()]);
 
     heap.push(1.0.into());
     assert_eq!(heap.left.clone().into_vec_asc(), vec![1.0.into(), 1.0.into(), 2.0.into(), 2.0.into()]);
-    assert_eq!(heap.right.clone().into_vec_asc(), vec![Reverse(2.0.into()), Reverse(2.0.into()), Reverse(2.0.into()), Reverse(2.0.into())]);
+    assert_eq!(heap.right.clone().into_vec_desc(), vec![2.0.into(), 2.0.into(), 2.0.into(), 2.0.into()]);
 
     heap.push(3.0.into());
     assert_eq!(heap.left.clone().into_vec_asc(), vec![1.0.into(), 2.0.into(), 2.0.into(), 2.0.into()]);
-    assert_eq!(heap.right.clone().into_vec_asc(), vec![Reverse(3.0.into()), Reverse(2.0.into()), Reverse(2.0.into()), Reverse(2.0.into())]);
+    assert_eq!(heap.right.clone().into_vec_desc(), vec![3.0.into(), 2.0.into(), 2.0.into(), 2.0.into()]);
 
     heap.push(2.0.into());
     assert_eq!(heap.left.clone().into_vec_asc(), vec![2.0.into(); 4]);
-    assert_eq!(heap.right.clone().into_vec_asc(), vec![Reverse(2.0.into()); 3]);
+    assert_eq!(heap.right.clone().into_vec_desc(), vec![2.0.into(); 3]);
   }
 }
