@@ -16,6 +16,7 @@ exclude = ["/.travis.yml"]
 travis-ci = { repository = "reitermarkus/medianheap-rs" }
 
 [dependencies]
+min-max-heap = "1.0"
 ordered-float = { version = "1.0", optional = true }
 
 [features]
