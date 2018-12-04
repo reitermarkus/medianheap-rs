@@ -1,4 +1,8 @@
-# `MedianHeap<T>`
+# Median Heap
+
+[![Build Status](https://travis-ci.com/reitermarkus/medianheap-rs.svg?branch=master)](https://travis-ci.com/reitermarkus/medianheap-rs)
+[![Crates.io](https://img.shields.io/crates/v/medianheap.svg)](https://crates.io/crates/medianheap)
+[![Documentation](https://docs.rs/medianheap/badge.svg)](https://docs.rs/medianheap)
 
 ## Usage
 
