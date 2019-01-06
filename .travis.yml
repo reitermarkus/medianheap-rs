@@ -4,21 +4,17 @@ cache: cargo
 
 matrix:
   include:
-    - name: cargo test
-      rust: stable
+    - rust: stable
       os: osx
 
-    - name: cargo +nightly test
-      rust: nightly
+    - rust: nightly
       os: osx
 
-    - name: cargo test
-      rust: stable
+    - rust: stable
       os: linux
       env: CRATES_IO_PUBLISH=true
 
-    - name: cargo +nightly test
-      rust: nightly
+    - rust: nightly
       os: linux
 
 install: |
