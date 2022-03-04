@@ -297,34 +297,34 @@ mod tests {
   fn push() {
     let mut heap = MedianHeap::<NotNan<f32>>::new();
 
-    heap.push(1.0.into());
-    assert_eq!(heap.median(), Some(1.0.into()));
+    heap.push(1.0.try_into().unwrap());
+    assert_eq!(heap.median(), Some(1.0.try_into().unwrap()));
 
-    heap.push(2.0.into());
-    assert_eq!(heap.median(), Some(1.5.into()));
+    heap.push(2.0.try_into().unwrap());
+    assert_eq!(heap.median(), Some(1.5.try_into().unwrap()));
 
-    heap.push(3.0.into());
-    assert_eq!(heap.median(), Some(2.0.into()));
+    heap.push(3.0.try_into().unwrap());
+    assert_eq!(heap.median(), Some(2.0.try_into().unwrap()));
 
-    heap.push(4.0.into());
-    assert_eq!(heap.median(), Some(2.5.into()));
+    heap.push(4.0.try_into().unwrap());
+    assert_eq!(heap.median(), Some(2.5.try_into().unwrap()));
 
-    heap.push(5.0.into());
-    assert_eq!(heap.median(), Some(3.0.into()));
+    heap.push(5.0.try_into().unwrap());
+    assert_eq!(heap.median(), Some(3.0.try_into().unwrap()));
 
-    heap.push(1.0.into());
-    assert_eq!(heap.median(), Some(2.5.into()));
+    heap.push(1.0.try_into().unwrap());
+    assert_eq!(heap.median(), Some(2.5.try_into().unwrap()));
   }
 
   #[test]
   fn push_ascending() {
     let mut heap = MedianHeap::<NotNan<f32>>::new();
 
-    heap.push(1.0.into());
-    heap.push(2.0.into());
-    heap.push(3.0.into());
-    heap.push(4.0.into());
-    heap.push(5.0.into());
+    heap.push(1.0.try_into().unwrap());
+    heap.push(2.0.try_into().unwrap());
+    heap.push(3.0.try_into().unwrap());
+    heap.push(4.0.try_into().unwrap());
+    heap.push(5.0.try_into().unwrap());
 
     assert_eq!(heap.median(), Some(3.0.into()));
   }
@@ -333,13 +333,13 @@ mod tests {
   fn push_descending() {
     let mut heap = MedianHeap::<NotNan<f32>>::new();
 
-    heap.push(5.0.into());
-    heap.push(4.0.into());
-    heap.push(3.0.into());
-    heap.push(2.0.into());
-    heap.push(1.0.into());
+    heap.push(5.0.try_into().unwrap());
+    heap.push(4.0.try_into().unwrap());
+    heap.push(3.0.try_into().unwrap());
+    heap.push(2.0.try_into().unwrap());
+    heap.push(1.0.try_into().unwrap());
 
-    assert_eq!(heap.median(), Some(3.0.into()));
+    assert_eq!(heap.median(), Some(3.0.try_into().unwrap()));
   }
 
   #[test]
@@ -352,14 +352,14 @@ mod tests {
   fn max_size_1() {
     let mut heap = MedianHeap::<NotNan<f32>>::with_max_size(1);
 
-    heap.push(1.0.into());
-    assert_eq!(heap.median(), Some(1.0.into()));
+    heap.push(1.0.try_into().unwrap());
+    assert_eq!(heap.median(), Some(1.0.try_into().unwrap()));
     assert_eq!(heap.len(), 1);
-    heap.push(1.0.into());
-    assert_eq!(heap.median(), Some(1.0.into()));
+    heap.push(1.0.try_into().unwrap());
+    assert_eq!(heap.median(), Some(1.0.try_into().unwrap()));
     assert_eq!(heap.len(), 1);
-    heap.push(1.0.into());
-    assert_eq!(heap.median(), Some(1.0.into()));
+    heap.push(1.0.try_into().unwrap());
+    assert_eq!(heap.median(), Some(1.0.try_into().unwrap()));
     assert_eq!(heap.len(), 1);
   }
 
@@ -367,14 +367,14 @@ mod tests {
   fn max_size_1_asc() {
     let mut heap = MedianHeap::<NotNan<f32>>::with_max_size(1);
 
-    heap.push(1.0.into());
-    assert_eq!(heap.median(), Some(1.0.into()));
+    heap.push(1.0.try_into().unwrap());
+    assert_eq!(heap.median(), Some(1.0.try_into().unwrap()));
     assert_eq!(heap.len(), 1);
-    heap.push(2.0.into());
-    assert_eq!(heap.median(), Some(2.0.into()));
+    heap.push(2.0.try_into().unwrap());
+    assert_eq!(heap.median(), Some(2.0.try_into().unwrap()));
     assert_eq!(heap.len(), 1);
-    heap.push(3.0.into());
-    assert_eq!(heap.median(), Some(3.0.into()));
+    heap.push(3.0.try_into().unwrap());
+    assert_eq!(heap.median(), Some(3.0.try_into().unwrap()));
     assert_eq!(heap.len(), 1);
   }
 
@@ -382,14 +382,14 @@ mod tests {
   fn max_size_1_desc() {
     let mut heap = MedianHeap::<NotNan<f32>>::with_max_size(1);
 
-    heap.push(3.0.into());
-    assert_eq!(heap.median(), Some(3.0.into()));
+    heap.push(3.0.try_into().unwrap());
+    assert_eq!(heap.median(), Some(3.0.try_into().unwrap()));
     assert_eq!(heap.len(), 1);
-    heap.push(2.0.into());
-    assert_eq!(heap.median(), Some(2.0.into()));
+    heap.push(2.0.try_into().unwrap());
+    assert_eq!(heap.median(), Some(2.0.try_into().unwrap()));
     assert_eq!(heap.len(), 1);
-    heap.push(1.0.into());
-    assert_eq!(heap.median(), Some(1.0.into()));
+    heap.push(1.0.try_into().unwrap());
+    assert_eq!(heap.median(), Some(1.0.try_into().unwrap()));
     assert_eq!(heap.len(), 1);
   }
 
@@ -398,7 +398,7 @@ mod tests {
     let mut heap = MedianHeap::<NotNan<f32>>::with_max_size(8);
 
     for i in 0..100 {
-      heap.push((i as f32).into());
+      heap.push((i as f32).try_into().unwrap());
 
       if i < 8 {
         assert_eq!(heap.len(), i + 1);
@@ -407,7 +407,7 @@ mod tests {
       }
     }
 
-    assert_eq!(heap.median(), Some(95.5.into()));
+    assert_eq!(heap.median(), Some(95.5.try_into().unwrap()));
     assert_eq!(heap.len(), 8);
   }
 
@@ -426,33 +426,33 @@ mod tests {
     let mut heap = MedianHeap::<NotNan<f64>>::with_max_size(8);
 
     for _ in 0..8 {
-      heap.push(100.0.into());
+      heap.push(100.0.try_into().unwrap());
     }
 
-    assert_eq!(heap.left.clone().into_vec_asc(), vec![100.0.into(); 4]);
-    assert_eq!(heap.right.clone().into_vec_desc(), vec![100.0.into(); 4]);
+    assert_eq!(heap.left.clone().into_vec_asc(), vec![100.0.try_into().unwrap(); 4]);
+    assert_eq!(heap.right.clone().into_vec_desc(), vec![100.0.try_into().unwrap(); 4]);
 
     for _ in 0..(8 * 3 / 2 + 1) {
-      heap.push(2.0.into());
+      heap.push(2.0.try_into().unwrap());
     }
 
-    assert_eq!(heap.left.clone().into_vec_asc(), vec![2.0.into(); 4]);
-    assert_eq!(heap.right.clone().into_vec_desc(), vec![2.0.into(); 4]);
+    assert_eq!(heap.left.clone().into_vec_asc(), vec![2.0.try_into().unwrap(); 4]);
+    assert_eq!(heap.right.clone().into_vec_desc(), vec![2.0.try_into().unwrap(); 4]);
 
     heap.push(1.0.into());
-    assert_eq!(heap.left.clone().into_vec_asc(), vec![1.0.into(), 2.0.into(), 2.0.into(), 2.0.into()]);
-    assert_eq!(heap.right.clone().into_vec_desc(), vec![2.0.into(), 2.0.into(), 2.0.into(), 2.0.into()]);
+    assert_eq!(heap.left.clone().into_vec_asc(), vec![1.0.try_into().unwrap(), 2.0.try_into().unwrap(), 2.0.try_into().unwrap(), 2.0.try_into().unwrap()]);
+    assert_eq!(heap.right.clone().into_vec_desc(), vec![2.0.try_into().unwrap(), 2.0.try_into().unwrap(), 2.0.try_into().unwrap(), 2.0.try_into().unwrap()]);
 
     heap.push(1.0.into());
-    assert_eq!(heap.left.clone().into_vec_asc(), vec![1.0.into(), 1.0.into(), 2.0.into(), 2.0.into()]);
-    assert_eq!(heap.right.clone().into_vec_desc(), vec![2.0.into(), 2.0.into(), 2.0.into(), 2.0.into()]);
+    assert_eq!(heap.left.clone().into_vec_asc(), vec![1.0.try_into().unwrap(), 1.0.try_into().unwrap(), 2.0.try_into().unwrap(), 2.0.try_into().unwrap()]);
+    assert_eq!(heap.right.clone().into_vec_desc(), vec![2.0.try_into().unwrap(), 2.0.try_into().unwrap(), 2.0.try_into().unwrap(), 2.0.try_into().unwrap()]);
 
     heap.push(3.0.into());
-    assert_eq!(heap.left.clone().into_vec_asc(), vec![1.0.into(), 2.0.into(), 2.0.into(), 2.0.into()]);
-    assert_eq!(heap.right.clone().into_vec_desc(), vec![3.0.into(), 2.0.into(), 2.0.into(), 2.0.into()]);
+    assert_eq!(heap.left.clone().into_vec_asc(), vec![1.0.try_into().unwrap(), 2.0.try_into().unwrap(), 2.0.try_into().unwrap(), 2.0.try_into().unwrap()]);
+    assert_eq!(heap.right.clone().into_vec_desc(), vec![3.0.try_into().unwrap(), 2.0.try_into().unwrap(), 2.0.try_into().unwrap(), 2.0.try_into().unwrap()]);
 
     heap.push(2.0.into());
-    assert_eq!(heap.left.clone().into_vec_asc(), vec![2.0.into(); 4]);
-    assert_eq!(heap.right.clone().into_vec_desc(), vec![2.0.into(); 3]);
+    assert_eq!(heap.left.clone().into_vec_asc(), vec![2.0.try_into().unwrap(); 4]);
+    assert_eq!(heap.right.clone().into_vec_desc(), vec![2.0.try_into().unwrap(); 3]);
   }
 }
