@@ -1,4 +1,4 @@
-#[cfg(any(test, feature = "ordered-float"))]
+#[cfg(feature = "ordered-float")]
 use ordered_float::NotNan;
 
 /// This trait is used for calculating the arithmetic mean of the two middlemost elements
