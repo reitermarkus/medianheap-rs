@@ -177,8 +177,8 @@ impl<T: Ord + AverageWith + Clone> MedianHeap<T> {
       Greater => self.left.peek_max().cloned(),
       Equal   => {
         self.left.peek_max().cloned().and_then(|left| {
-          self.right.peek_min().cloned().and_then(|right| {
-            Some(left.average_with(&right))
+          self.right.peek_min().cloned().map(|right| {
+            left.average_with(&right)
           })
         })
       },
