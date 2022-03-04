@@ -326,7 +326,7 @@ mod tests {
     heap.push(4.0.try_into().unwrap());
     heap.push(5.0.try_into().unwrap());
 
-    assert_eq!(heap.median(), Some(3.0.into()));
+    assert_eq!(heap.median(), Some(3.0.try_into().unwrap()));
   }
 
   #[test]
@@ -439,19 +439,19 @@ mod tests {
     assert_eq!(heap.left.clone().into_vec_asc(), vec![2.0.try_into().unwrap(); 4]);
     assert_eq!(heap.right.clone().into_vec_desc(), vec![2.0.try_into().unwrap(); 4]);
 
-    heap.push(1.0.into());
+    heap.push(1.0.try_into().unwrap());
     assert_eq!(heap.left.clone().into_vec_asc(), vec![1.0.try_into().unwrap(), 2.0.try_into().unwrap(), 2.0.try_into().unwrap(), 2.0.try_into().unwrap()]);
     assert_eq!(heap.right.clone().into_vec_desc(), vec![2.0.try_into().unwrap(), 2.0.try_into().unwrap(), 2.0.try_into().unwrap(), 2.0.try_into().unwrap()]);
 
-    heap.push(1.0.into());
+    heap.push(1.0.try_into().unwrap());
     assert_eq!(heap.left.clone().into_vec_asc(), vec![1.0.try_into().unwrap(), 1.0.try_into().unwrap(), 2.0.try_into().unwrap(), 2.0.try_into().unwrap()]);
     assert_eq!(heap.right.clone().into_vec_desc(), vec![2.0.try_into().unwrap(), 2.0.try_into().unwrap(), 2.0.try_into().unwrap(), 2.0.try_into().unwrap()]);
 
-    heap.push(3.0.into());
+    heap.push(3.0.try_into().unwrap());
     assert_eq!(heap.left.clone().into_vec_asc(), vec![1.0.try_into().unwrap(), 2.0.try_into().unwrap(), 2.0.try_into().unwrap(), 2.0.try_into().unwrap()]);
     assert_eq!(heap.right.clone().into_vec_desc(), vec![3.0.try_into().unwrap(), 2.0.try_into().unwrap(), 2.0.try_into().unwrap(), 2.0.try_into().unwrap()]);
 
-    heap.push(2.0.into());
+    heap.push(2.0.try_into().unwrap());
     assert_eq!(heap.left.clone().into_vec_asc(), vec![2.0.try_into().unwrap(); 4]);
     assert_eq!(heap.right.clone().into_vec_desc(), vec![2.0.try_into().unwrap(); 3]);
   }
