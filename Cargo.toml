@@ -1,6 +1,7 @@
 [package]
 name = "medianheap"
 version = "0.2.0"
+edition = "2021"
 authors = ["Markus Reiter <me@reitermark.us>"]
 license = "MIT OR Apache-2.0"
 readme = "ReadMe.md"
