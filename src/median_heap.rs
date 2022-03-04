@@ -287,7 +287,7 @@ impl<T: Ord + AverageWith + Clone> MedianHeap<T> {
   }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "ordered-float"))]
 mod tests {
   use super::*;
 
