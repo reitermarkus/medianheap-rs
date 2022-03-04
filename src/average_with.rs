@@ -8,14 +8,14 @@ pub trait AverageWith {
   fn average_with(&self, other: &Self) -> Self;
 }
 
-#[cfg(any(test, feature = "ordered-float"))]
+#[cfg(feature = "ordered-float")]
 impl AverageWith for NotNan<f32> {
   fn average_with(&self, other: &Self) -> Self {
     (*self + *other) / 2.0
   }
 }
 
-#[cfg(any(test, feature = "ordered-float"))]
+#[cfg(feature = "ordered-float")]
 impl AverageWith for NotNan<f64> {
   fn average_with(&self, other: &Self) -> Self {
     (*self + *other) / 2.0
