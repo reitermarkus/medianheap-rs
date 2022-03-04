@@ -2,11 +2,6 @@
 
 //! A median heap for keeping track of a running median.
 
-extern crate min_max_heap;
-
-#[cfg(any(test, feature = "ordered-float"))]
-extern crate ordered_float;
-
 mod average_with;
 pub use crate::average_with::AverageWith;
 
