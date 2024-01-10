@@ -2,8 +2,5 @@
 
 //! A median heap for keeping track of a running median.
 
-mod average_with;
-pub use crate::average_with::AverageWith;
-
 mod median_heap;
-pub use crate::median_heap::MedianHeap;
+pub use crate::median_heap::{Median, MedianHeap};

@@ -14,9 +14,7 @@ medianheap = "0.4"
 
 ## Example
 
-Elements of a `MedianHeap` must be `Ord + AverageWith + Clone`.
-
-The `AverageWith` trait is used to calculate the mean value for the two middlemost items if the number of items is even. This is implemented for all integer types and the `NotNan` type from the [`ordered-float`](https://github.com/reem/rust-ordered-float) crate.
+Elements of a `MedianHeap` must be `Ord`. If you want to create a `MedianHeap` containing floating point numbers, you can use the [`ordered-float`](https://crates.io/crates/ordered-float) crate.
 
 ```rust
 let mut heap = MedianHeap::new();

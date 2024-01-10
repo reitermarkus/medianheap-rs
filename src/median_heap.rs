@@ -5,9 +5,17 @@ use std::{
 
 use min_max_heap::MinMaxHeap;
 
-use crate::average_with::AverageWith;
+/// A median, consisting of either a single or a pair of values.
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum Median<T> {
+  /// A single value.
+  Single(T),
+  /// A pair of values.
+  Pair(T, T),
+}
 
 /// A median heap implemented with two binary heaps.
+#[derive(Clone)]
 pub struct MedianHeap<T: Ord> {
   max_size: Option<usize>,
   left: MinMaxHeap<T>,
@@ -24,17 +32,20 @@ impl<T: Ord> Default for MedianHeap<T> {
 
 impl<T: Ord + Debug> Debug for MedianHeap<T> {
   fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-    write!(f, "MaxHeap {{ ")?;
+    let mut s = f.debug_struct("MedianHeap");
 
     if let Some(max_size) = self.max_size {
-      write!(f, "max_size: {}, ", max_size)?
+      s.field("max_size", &max_size);
     }
 
-    write!(f, "left: {:?}, right: {:?} }}", self.left, self.right)
+    s.field("left", &self.left);
+    s.field("right", &self.right);
+
+    s.finish()
   }
 }
 
-impl<T: Ord + AverageWith + Clone> MedianHeap<T> {
+impl<T: Ord> MedianHeap<T> {
   /// Creates an empty `MedianHeap`.
   ///
   /// # Examples
@@ -96,6 +107,7 @@ impl<T: Ord + AverageWith + Clone> MedianHeap<T> {
   /// let heap = MedianHeap::<i32>::with_max_size(42);
   /// assert_eq!(heap.max_size(), Some(42));
   /// ```
+  #[inline]
   pub fn max_size(&self) -> Option<usize> {
     self.max_size
   }
@@ -157,27 +169,23 @@ impl<T: Ord + AverageWith + Clone> MedianHeap<T> {
   ///
   /// ```
   /// # extern crate medianheap;
-  /// # use medianheap::MedianHeap;
+  /// # use medianheap::{MedianHeap, Median};
   /// #
   /// let mut heap = MedianHeap::new();
   ///
   /// assert_eq!(heap.median(), None);
   ///
   /// heap.push(1);
-  /// assert_eq!(heap.median(), Some(1));
+  /// assert_eq!(heap.median(), Some(Median::Single(&1)));
   ///
   /// heap.push(3);
-  /// assert_eq!(heap.median(), Some(2));
+  /// assert_eq!(heap.median(), Some(Median::Pair(&1, &3)));
   /// ```
-  pub fn median(&self) -> Option<T> {
+  pub fn median(&self) -> Option<Median<&T>> {
     match self.left.len().cmp(&self.right.len()) {
-      Less => self.right.peek_min().cloned(),
-      Greater => self.left.peek_max().cloned(),
-      Equal => self
-        .left
-        .peek_max()
-        .cloned()
-        .and_then(|left| self.right.peek_min().cloned().map(|right| left.average_with(&right))),
+      Less => self.right.peek_min().map(Median::Single),
+      Greater => self.left.peek_max().map(Median::Single),
+      Equal => self.left.peek_max().and_then(|left| self.right.peek_min().map(|right| Median::Pair(left, right))),
     }
   }
 
@@ -193,7 +201,6 @@ impl<T: Ord + AverageWith + Clone> MedianHeap<T> {
   /// Basic usage:
   ///
   /// ```
-  /// # extern crate medianheap;
   /// # use medianheap::MedianHeap;
   /// #
   /// let mut heap = MedianHeap::new();
@@ -208,7 +215,6 @@ impl<T: Ord + AverageWith + Clone> MedianHeap<T> {
   /// Usage with `max_size`:
   ///
   /// ```
-  /// # extern crate medianheap;
   /// # use medianheap::MedianHeap;
   /// #
   /// let mut heap = MedianHeap::with_max_size(2);
@@ -222,7 +228,6 @@ impl<T: Ord + AverageWith + Clone> MedianHeap<T> {
   /// both the smallest and largest item being removed in order not to overflow the `max_size`.
   ///
   /// ```
-  /// # extern crate medianheap;
   /// # use medianheap::MedianHeap;
   /// #
   /// # let mut heap = MedianHeap::with_max_size(2);
@@ -234,7 +239,24 @@ impl<T: Ord + AverageWith + Clone> MedianHeap<T> {
   /// assert_eq!(heap.len(), 1);
   /// ```
   pub fn push(&mut self, item: T) {
-    match self.median().map(|median| item.cmp(&median)).unwrap_or(Equal) {
+    match self
+      .median()
+      .map(|median| match median {
+        Median::Single(v) => item.cmp(v),
+        Median::Pair(v1, v2) => {
+          if item >= *v1 && item <= *v2 {
+            Equal
+          } else if item < *v1 {
+            Less
+          } else if item > *v2 {
+            Greater
+          } else {
+            Equal
+          }
+        },
+      })
+      .unwrap_or(Equal)
+    {
       Less if self.is_full() => {
         self.left.push(item);
 
@@ -287,117 +309,109 @@ impl<T: Ord + AverageWith + Clone> MedianHeap<T> {
 mod tests {
   use super::*;
 
-  use ordered_float::NotNan;
-
-  macro_rules! not_nan {
-    ($n:expr) => {
-      NotNan::try_from($n).unwrap()
-    };
-  }
-
   #[test]
   fn push() {
-    let mut heap = MedianHeap::<NotNan<f32>>::new();
+    let mut heap = MedianHeap::<i32>::new();
 
-    heap.push(not_nan!(1.0));
-    assert_eq!(heap.median(), Some(not_nan!(1.0)));
+    heap.push(1);
+    assert_eq!(heap.median(), Some(Median::Single(&1)));
 
-    heap.push(not_nan!(2.0));
-    assert_eq!(heap.median(), Some(not_nan!(1.5)));
+    heap.push(2);
+    assert_eq!(heap.median(), Some(Median::Pair(&1, &2)));
 
-    heap.push(not_nan!(3.0));
-    assert_eq!(heap.median(), Some(not_nan!(2.0)));
+    heap.push(3);
+    assert_eq!(heap.median(), Some(Median::Single(&2)));
 
-    heap.push(not_nan!(4.0));
-    assert_eq!(heap.median(), Some(not_nan!(2.5)));
+    heap.push(4);
+    assert_eq!(heap.median(), Some(Median::Pair(&2, &3)));
 
-    heap.push(not_nan!(5.0));
-    assert_eq!(heap.median(), Some(not_nan!(3.0)));
+    heap.push(5);
+    assert_eq!(heap.median(), Some(Median::Single(&3)));
 
-    heap.push(not_nan!(1.0));
-    assert_eq!(heap.median(), Some(not_nan!(2.5)));
+    heap.push(1);
+    assert_eq!(heap.median(), Some(Median::Pair(&2, &3)));
   }
 
   #[test]
   fn push_ascending() {
-    let mut heap = MedianHeap::<NotNan<f32>>::new();
+    let mut heap = MedianHeap::<i32>::new();
 
-    heap.push(not_nan!(1.0));
-    heap.push(not_nan!(2.0));
-    heap.push(not_nan!(3.0));
-    heap.push(not_nan!(4.0));
-    heap.push(not_nan!(5.0));
+    heap.push(1);
+    heap.push(2);
+    heap.push(3);
+    heap.push(4);
+    heap.push(5);
 
-    assert_eq!(heap.median(), Some(not_nan!(3.0)));
+    assert_eq!(heap.median(), Some(Median::Single(&3)));
   }
 
   #[test]
   fn push_descending() {
-    let mut heap = MedianHeap::<NotNan<f32>>::new();
+    let mut heap = MedianHeap::<i32>::new();
 
-    heap.push(not_nan!(5.0));
-    heap.push(not_nan!(4.0));
-    heap.push(not_nan!(3.0));
-    heap.push(not_nan!(2.0));
-    heap.push(not_nan!(1.0));
+    heap.push(5);
+    heap.push(4);
+    heap.push(3);
+    heap.push(2);
+    heap.push(1);
 
-    assert_eq!(heap.median(), Some(not_nan!(3.0)));
+    assert_eq!(heap.median(), Some(Median::Single(&3)));
   }
 
   #[test]
   #[should_panic]
   fn max_size_0() {
-    MedianHeap::<NotNan<f32>>::with_max_size(0);
+    MedianHeap::<i32>::with_max_size(0);
   }
 
   #[test]
   fn max_size_1() {
-    let mut heap = MedianHeap::<NotNan<f32>>::with_max_size(1);
+    let mut heap = MedianHeap::<i32>::with_max_size(1);
 
-    heap.push(not_nan!(1.0));
-    assert_eq!(heap.median(), Some(not_nan!(1.0)));
+    heap.push(1);
+    assert_eq!(heap.median(), Some(Median::Single(&1)));
     assert_eq!(heap.len(), 1);
-    heap.push(not_nan!(1.0));
-    assert_eq!(heap.median(), Some(not_nan!(1.0)));
+    heap.push(1);
+    assert_eq!(heap.median(), Some(Median::Single(&1)));
     assert_eq!(heap.len(), 1);
-    heap.push(not_nan!(1.0));
-    assert_eq!(heap.median(), Some(not_nan!(1.0)));
+    heap.push(1);
+    assert_eq!(heap.median(), Some(Median::Single(&1)));
     assert_eq!(heap.len(), 1);
   }
 
   #[test]
   fn max_size_1_asc() {
-    let mut heap = MedianHeap::<NotNan<f32>>::with_max_size(1);
+    let mut heap = MedianHeap::<i32>::with_max_size(1);
 
-    heap.push(not_nan!(1.0));
-    assert_eq!(heap.median(), Some(not_nan!(1.0)));
+    heap.push(1);
+    assert_eq!(heap.median(), Some(Median::Single(&1)));
     assert_eq!(heap.len(), 1);
-    heap.push(not_nan!(2.0));
-    assert_eq!(heap.median(), Some(not_nan!(2.0)));
+    heap.push(2);
+    assert_eq!(heap.median(), Some(Median::Single(&2)));
     assert_eq!(heap.len(), 1);
-    heap.push(not_nan!(3.0));
-    assert_eq!(heap.median(), Some(not_nan!(3.0)));
+    heap.push(3);
+    assert_eq!(heap.median(), Some(Median::Single(&3)));
     assert_eq!(heap.len(), 1);
   }
 
   #[test]
   fn max_size_1_desc() {
-    let mut heap = MedianHeap::<NotNan<f32>>::with_max_size(1);
+    let mut heap = MedianHeap::<i32>::with_max_size(1);
 
-    heap.push(not_nan!(3.0));
-    assert_eq!(heap.median(), Some(not_nan!(3.0)));
+    heap.push(3);
+    assert_eq!(heap.median(), Some(Median::Single(&3)));
     assert_eq!(heap.len(), 1);
-    heap.push(not_nan!(2.0));
-    assert_eq!(heap.median(), Some(not_nan!(2.0)));
+    heap.push(2);
+    assert_eq!(heap.median(), Some(Median::Single(&2)));
     assert_eq!(heap.len(), 1);
-    heap.push(not_nan!(1.0));
-    assert_eq!(heap.median(), Some(not_nan!(1.0)));
+    heap.push(1);
+    assert_eq!(heap.median(), Some(Median::Single(&1)));
     assert_eq!(heap.len(), 1);
   }
 
   #[test]
   fn max_size_8() {
-    let mut heap = MedianHeap::<NotNan<f32>>::with_max_size(8);
+    let mut heap = MedianHeap::<i32>::with_max_size(8);
 
     for i in 0..100 {
       heap.push((i as f32).try_into().unwrap());
@@ -409,52 +423,53 @@ mod tests {
       }
     }
 
-    assert_eq!(heap.median(), Some(not_nan!(95.5)));
+    assert_eq!(heap.median(), Some(Median::Pair(&95, &96)));
     assert_eq!(heap.len(), 8);
   }
 
   #[test]
   fn f32() {
-    MedianHeap::<NotNan<f32>>::new();
+    MedianHeap::<i32>::new();
   }
 
   #[test]
   fn f64() {
-    MedianHeap::<NotNan<f64>>::new();
+    MedianHeap::<i32>::new();
   }
 
   #[test]
   fn max_size_balancing() {
-    let mut heap = MedianHeap::<NotNan<f64>>::with_max_size(8);
+    let mut heap = MedianHeap::<i32>::with_max_size(8);
 
     for _ in 0..8 {
-      heap.push(not_nan!(100.0));
+      heap.push(100);
     }
 
-    assert_eq!(heap.left.clone().into_vec_asc(), vec![not_nan!(100.0); 4]);
-    assert_eq!(heap.right.clone().into_vec_desc(), vec![not_nan!(100.0); 4]);
+    assert_eq!(heap.left.clone().into_vec_asc(), vec![100; 4]);
+    assert_eq!(heap.right.clone().into_vec_desc(), vec![100; 4]);
 
-    for _ in 0..(8 * 3 / 2 + 1) {
-      heap.push(not_nan!(2.0));
+    for _ in 0..(8 * 3 / 2) {
+      heap.push(2);
+      dbg!(&heap);
     }
 
-    assert_eq!(heap.left.clone().into_vec_asc(), vec![not_nan!(2.0); 4]);
-    assert_eq!(heap.right.clone().into_vec_desc(), vec![not_nan!(2.0); 4]);
+    assert_eq!(heap.left.clone().into_vec_asc(), vec![2; 4]);
+    assert_eq!(heap.right.clone().into_vec_desc(), vec![2; 4]);
 
-    heap.push(not_nan!(1.0));
-    assert_eq!(heap.left.clone().into_vec_asc(), vec![not_nan!(1.0), not_nan!(2.0), not_nan!(2.0), not_nan!(2.0)],);
-    assert_eq!(heap.right.clone().into_vec_desc(), vec![not_nan!(2.0), not_nan!(2.0), not_nan!(2.0), not_nan!(2.0)],);
+    heap.push(1);
+    assert_eq!(heap.left.clone().into_vec_asc(), vec![1, 2, 2, 2],);
+    assert_eq!(heap.right.clone().into_vec_desc(), vec![2, 2, 2, 2],);
 
-    heap.push(not_nan!(1.0));
-    assert_eq!(heap.left.clone().into_vec_asc(), vec![not_nan!(1.0), not_nan!(1.0), not_nan!(2.0), not_nan!(2.0)],);
-    assert_eq!(heap.right.clone().into_vec_desc(), vec![not_nan!(2.0), not_nan!(2.0), not_nan!(2.0), not_nan!(2.0)],);
+    heap.push(1);
+    assert_eq!(heap.left.clone().into_vec_asc(), vec![1, 1, 2, 2],);
+    assert_eq!(heap.right.clone().into_vec_desc(), vec![2, 2, 2, 2],);
 
-    heap.push(not_nan!(3.0));
-    assert_eq!(heap.left.clone().into_vec_asc(), vec![not_nan!(1.0), not_nan!(2.0), not_nan!(2.0), not_nan!(2.0)],);
-    assert_eq!(heap.right.clone().into_vec_desc(), vec![not_nan!(3.0), not_nan!(2.0), not_nan!(2.0), not_nan!(2.0)],);
+    heap.push(3);
+    assert_eq!(heap.left.clone().into_vec_asc(), vec![1, 2, 2, 2],);
+    assert_eq!(heap.right.clone().into_vec_desc(), vec![3, 2, 2, 2],);
 
-    heap.push(not_nan!(2.0));
-    assert_eq!(heap.left.clone().into_vec_asc(), vec![not_nan!(2.0); 4]);
-    assert_eq!(heap.right.clone().into_vec_desc(), vec![not_nan!(2.0); 3]);
+    heap.push(2);
+    assert_eq!(heap.left.clone().into_vec_asc(), vec![2; 4]);
+    assert_eq!(heap.right.clone().into_vec_desc(), vec![2; 3]);
   }
 }
