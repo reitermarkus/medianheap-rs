@@ -1,5 +1,7 @@
-use std::cmp::{Ordering::*};
-use std::fmt::{Debug, Formatter, Result};
+use std::{
+  cmp::Ordering::*,
+  fmt::{Debug, Formatter, Result},
+};
 
 use min_max_heap::MinMaxHeap;
 
@@ -16,11 +18,7 @@ impl<T: Ord> Default for MedianHeap<T> {
   /// Creates an empty `MedianHeap<T>`.
   #[inline]
   fn default() -> Self {
-    Self {
-      max_size: Default::default(),
-      left: Default::default(),
-      right: Default::default(),
-    }
+    Self { max_size: Default::default(), left: Default::default(), right: Default::default() }
   }
 }
 
@@ -51,7 +49,7 @@ impl<T: Ord + AverageWith + Clone> MedianHeap<T> {
   /// heap.push(4);
   /// ```
   #[inline]
-  pub fn new() -> Self  {
+  pub fn new() -> Self {
     Default::default()
   }
 
@@ -73,7 +71,7 @@ impl<T: Ord + AverageWith + Clone> MedianHeap<T> {
   /// heap.push(4);
   /// ```
   #[inline]
-  pub fn with_max_size(max_size: usize) -> Self  {
+  pub fn with_max_size(max_size: usize) -> Self {
     assert!(max_size > 0);
 
     let heap_size = (max_size + 3) / 2;
@@ -173,15 +171,13 @@ impl<T: Ord + AverageWith + Clone> MedianHeap<T> {
   /// ```
   pub fn median(&self) -> Option<T> {
     match self.left.len().cmp(&self.right.len()) {
-      Less    => self.right.peek_min().cloned(),
+      Less => self.right.peek_min().cloned(),
       Greater => self.left.peek_max().cloned(),
-      Equal   => {
-        self.left.peek_max().cloned().and_then(|left| {
-          self.right.peek_min().cloned().map(|right| {
-            left.average_with(&right)
-          })
-        })
-      },
+      Equal => self
+        .left
+        .peek_max()
+        .cloned()
+        .and_then(|left| self.right.peek_min().cloned().map(|right| left.average_with(&right))),
     }
   }
 
@@ -296,7 +292,7 @@ mod tests {
   macro_rules! not_nan {
     ($n:expr) => {
       NotNan::try_from($n).unwrap()
-    }
+    };
   }
 
   #[test]
@@ -446,34 +442,16 @@ mod tests {
     assert_eq!(heap.right.clone().into_vec_desc(), vec![not_nan!(2.0); 4]);
 
     heap.push(not_nan!(1.0));
-    assert_eq!(
-      heap.left.clone().into_vec_asc(),
-      vec![not_nan!(1.0), not_nan!(2.0), not_nan!(2.0), not_nan!(2.0)],
-    );
-    assert_eq!(
-      heap.right.clone().into_vec_desc(),
-      vec![not_nan!(2.0), not_nan!(2.0), not_nan!(2.0), not_nan!(2.0)],
-    );
+    assert_eq!(heap.left.clone().into_vec_asc(), vec![not_nan!(1.0), not_nan!(2.0), not_nan!(2.0), not_nan!(2.0)],);
+    assert_eq!(heap.right.clone().into_vec_desc(), vec![not_nan!(2.0), not_nan!(2.0), not_nan!(2.0), not_nan!(2.0)],);
 
     heap.push(not_nan!(1.0));
-    assert_eq!(
-      heap.left.clone().into_vec_asc(),
-      vec![not_nan!(1.0), not_nan!(1.0), not_nan!(2.0), not_nan!(2.0)],
-    );
-    assert_eq!(
-      heap.right.clone().into_vec_desc(),
-      vec![not_nan!(2.0), not_nan!(2.0), not_nan!(2.0), not_nan!(2.0)],
-    );
+    assert_eq!(heap.left.clone().into_vec_asc(), vec![not_nan!(1.0), not_nan!(1.0), not_nan!(2.0), not_nan!(2.0)],);
+    assert_eq!(heap.right.clone().into_vec_desc(), vec![not_nan!(2.0), not_nan!(2.0), not_nan!(2.0), not_nan!(2.0)],);
 
     heap.push(not_nan!(3.0));
-    assert_eq!(
-      heap.left.clone().into_vec_asc(),
-      vec![not_nan!(1.0), not_nan!(2.0), not_nan!(2.0), not_nan!(2.0)],
-    );
-    assert_eq!(
-      heap.right.clone().into_vec_desc(),
-      vec![not_nan!(3.0), not_nan!(2.0), not_nan!(2.0), not_nan!(2.0)],
-    );
+    assert_eq!(heap.left.clone().into_vec_asc(), vec![not_nan!(1.0), not_nan!(2.0), not_nan!(2.0), not_nan!(2.0)],);
+    assert_eq!(heap.right.clone().into_vec_desc(), vec![not_nan!(3.0), not_nan!(2.0), not_nan!(2.0), not_nan!(2.0)],);
 
     heap.push(not_nan!(2.0));
     assert_eq!(heap.left.clone().into_vec_asc(), vec![not_nan!(2.0); 4]);

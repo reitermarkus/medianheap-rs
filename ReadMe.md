@@ -9,7 +9,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-medianheap = "0.3"
+medianheap = "0.4"
 ```
 
 ## Example
