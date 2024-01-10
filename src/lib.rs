@@ -56,7 +56,6 @@ impl<T: Ord> MedianHeap<T> {
   /// Basic usage:
   ///
   /// ```
-  /// # extern crate medianheap;
   /// # use medianheap::MedianHeap;
   /// #
   /// let mut heap = MedianHeap::new();
@@ -78,7 +77,6 @@ impl<T: Ord> MedianHeap<T> {
   /// Basic usage:
   ///
   /// ```
-  /// # extern crate medianheap;
   /// # use medianheap::MedianHeap;
   /// #
   /// let mut heap = MedianHeap::with_max_size(42);
@@ -104,7 +102,6 @@ impl<T: Ord> MedianHeap<T> {
   /// Basic usage:
   ///
   /// ```
-  /// # extern crate medianheap;
   /// # use medianheap::MedianHeap;
   /// #
   /// let heap = MedianHeap::<i32>::with_max_size(42);
@@ -122,7 +119,6 @@ impl<T: Ord> MedianHeap<T> {
   /// Basic usage:
   ///
   /// ```
-  /// # extern crate medianheap;
   /// # use medianheap::MedianHeap;
   /// #
   /// let mut heap = MedianHeap::new();
@@ -142,7 +138,6 @@ impl<T: Ord> MedianHeap<T> {
   /// Basic usage:
   ///
   /// ```
-  /// # extern crate medianheap;
   /// # use medianheap::MedianHeap;
   /// #
   /// let mut heap = MedianHeap::<i32>::new();
@@ -171,7 +166,6 @@ impl<T: Ord> MedianHeap<T> {
   /// Basic usage:
   ///
   /// ```
-  /// # extern crate medianheap;
   /// # use medianheap::{MedianHeap, Median};
   /// #
   /// let mut heap = MedianHeap::new();
