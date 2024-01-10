@@ -19,11 +19,11 @@ Elements of a `MedianHeap` must be `Ord`. If you want to create a `MedianHeap` c
 ```rust
 let mut heap = MedianHeap::new();
 
-heap.push(1);
+assert_eq!(heap.median(), None);
 
-assert_eq!(heap.median(), Some(1));
+heap.push(1);
+assert_eq!(heap.median(), Some(Median::Single(&1)));
 
 heap.push(3);
-
-assert_eq!(heap.median(), Some(2));
+assert_eq!(heap.median(), Some(Median::Pair(&1, &3)));
 ```
