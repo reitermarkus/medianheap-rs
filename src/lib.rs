@@ -26,10 +26,10 @@ pub struct MedianHeap<T: Ord> {
 }
 
 impl<T: Ord> Default for MedianHeap<T> {
-  /// Creates an empty `MedianHeap<T>`.
+  /// Creates an empty `MedianHeap`.
   #[inline]
   fn default() -> Self {
-    Self { max_size: Default::default(), left: Default::default(), right: Default::default() }
+    Self::new()
   }
 }
 
@@ -63,7 +63,7 @@ impl<T: Ord> MedianHeap<T> {
   /// ```
   #[inline]
   pub fn new() -> Self {
-    Default::default()
+    Self { max_size: Default::default(), left: Default::default(), right: Default::default() }
   }
 
   /// Creates an empty `MedianHeap` which can only grow to `max_size`.
