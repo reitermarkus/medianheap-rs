@@ -157,9 +157,9 @@ impl<T: Ord> MedianHeap<T> {
   }
 
   /// This either returns
-  ///   - `Some(T)` containing the median value if there are an odd number of elements
-  ///   - `Some(T)` containing the arithmetic mean of the two middlemost values if there are an even number of elements
-  ///   - `None` if the heap is empty
+  ///   - `Some(Median::Single(T))` containing the single median value if there are an odd number of elements,
+  ///   - `Some(Median::Pair(T, T))` containing the two middlemost values if there are an even number of elements, or
+  ///   - `None` if the heap is empty.
   ///
   /// # Examples
   ///
@@ -189,9 +189,9 @@ impl<T: Ord> MedianHeap<T> {
   /// Pushes an item onto the median heap.
   ///
   /// When `max_size` is set and the heap is full, this will remove
-  ///   - the smallest item, if the pushed item is greater than `>` the current median
-  ///   - the largest item, if the pushed item is less than `<` the current median
-  ///   - both the smallest and the largest item, if the pushed item is equal `==` to the current median
+  ///   - the smallest item if the pushed item is greater than (`>`) the current median,
+  ///   - the largest item, if the pushed item is less than (`<`) the current median, or
+  ///   - both the smallest and the largest item, if the pushed item is equal (`==`) to the current median.
   ///
   /// # Examples
   ///
@@ -302,7 +302,34 @@ impl<T: Ord> MedianHeap<T> {
   }
 }
 
-#[cfg(all(test, feature = "ordered-float"))]
+impl<T: Ord + Clone> MedianHeap<T> {
+  /// This either returns
+  ///   - `Some(T)` containing the median value if there are an odd number of elements,
+  ///   - `Some(T)` containing the arithmetic mean of the two middlemost values if there are an even number of elements, or
+  ///   - `None` if the heap is empty.
+  ///
+  /// # Examples
+  ///
+  /// Basic usage:
+  ///
+  /// ```
+  /// # use medianheap::{MedianHeap, Median};
+  /// #
+  /// let mut heap = MedianHeap::new();
+  ///
+  /// heap.push(1);
+  /// heap.push(3);
+  /// assert_eq!(heap.median_with(|l, r| (l + r) / 2), Some(2));
+  /// ```
+  pub fn median_with(&self, f: impl FnOnce(&T, &T) -> T) -> Option<T> {
+    Some(match self.median()? {
+      Median::Single(v) => v.clone(),
+      Median::Pair(l, r) => f(l, r),
+    })
+  }
+}
+
+#[cfg(test)]
 mod tests {
   use super::*;
 
@@ -411,27 +438,11 @@ mod tests {
     let mut heap = MedianHeap::<i32>::with_max_size(8);
 
     for i in 0..100 {
-      heap.push((i as f32).try_into().unwrap());
-
-      if i < 8 {
-        assert_eq!(heap.len(), i + 1);
-      } else {
-        assert_eq!(heap.len(), 8);
-      }
+      heap.push(i);
     }
 
     assert_eq!(heap.median(), Some(Median::Pair(&95, &96)));
     assert_eq!(heap.len(), 8);
-  }
-
-  #[test]
-  fn f32() {
-    MedianHeap::<i32>::new();
-  }
-
-  #[test]
-  fn f64() {
-    MedianHeap::<i32>::new();
   }
 
   #[test]
@@ -443,30 +454,71 @@ mod tests {
     }
 
     assert_eq!(heap.left.clone().into_vec_asc(), vec![100; 4]);
-    assert_eq!(heap.right.clone().into_vec_desc(), vec![100; 4]);
+    assert_eq!(heap.right.clone().into_vec_asc(), vec![100; 4]);
 
     for _ in 0..(8 * 3 / 2) {
       heap.push(2);
-      dbg!(&heap);
     }
 
     assert_eq!(heap.left.clone().into_vec_asc(), vec![2; 4]);
-    assert_eq!(heap.right.clone().into_vec_desc(), vec![2; 4]);
+    assert_eq!(heap.right.clone().into_vec_asc(), vec![2; 4]);
 
     heap.push(1);
     assert_eq!(heap.left.clone().into_vec_asc(), vec![1, 2, 2, 2],);
-    assert_eq!(heap.right.clone().into_vec_desc(), vec![2, 2, 2, 2],);
+    assert_eq!(heap.right.clone().into_vec_asc(), vec![2, 2, 2, 2],);
 
     heap.push(1);
     assert_eq!(heap.left.clone().into_vec_asc(), vec![1, 1, 2, 2],);
-    assert_eq!(heap.right.clone().into_vec_desc(), vec![2, 2, 2, 2],);
+    assert_eq!(heap.right.clone().into_vec_asc(), vec![2, 2, 2, 2],);
 
     heap.push(3);
     assert_eq!(heap.left.clone().into_vec_asc(), vec![1, 2, 2, 2],);
-    assert_eq!(heap.right.clone().into_vec_desc(), vec![3, 2, 2, 2],);
+    assert_eq!(heap.right.clone().into_vec_asc(), vec![2, 2, 2, 3],);
 
     heap.push(2);
     assert_eq!(heap.left.clone().into_vec_asc(), vec![2; 4]);
-    assert_eq!(heap.right.clone().into_vec_desc(), vec![2; 3]);
+    assert_eq!(heap.right.clone().into_vec_asc(), vec![2; 3]);
+  }
+
+  #[test]
+  fn alternating_values() {
+    let mut heap = MedianHeap::<i32>::new();
+
+    heap.push(3);
+
+    for _ in 0..8 {
+      heap.push(1);
+      heap.push(5);
+    }
+
+    assert_eq!(heap.median(), Some(Median::Single(&3)));
+  }
+
+  #[test]
+  fn alternating_values_max_size_7() {
+    let mut heap = MedianHeap::<i32>::with_max_size(7);
+
+    heap.push(3);
+
+    for _ in 0..8 {
+      heap.push(1);
+      heap.push(5);
+    }
+
+    assert_eq!(heap.median(), Some(Median::Single(&3)));
+  }
+
+  #[test]
+  fn alternating_values_max_size_8() {
+    let mut heap = MedianHeap::<i32>::with_max_size(8);
+
+    heap.push(3);
+
+    for _ in 0..8 {
+      heap.push(1);
+      heap.push(5);
+    }
+
+    assert_eq!(heap.median(), Some(Median::Pair(&3, &5)));
   }
 }
