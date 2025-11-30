@@ -19,7 +19,7 @@ min-max-heap = "1.3"
 default = []
 
 [dev-dependencies]
-criterion = "0.5"
+criterion = "0.8"
 
 [[bench]]
 name = "max_size_push"
